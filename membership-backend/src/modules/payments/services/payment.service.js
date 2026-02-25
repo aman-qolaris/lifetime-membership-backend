@@ -22,10 +22,24 @@ class PaymentService {
       if (!applicant) {
         throw { statusCode: 404, message: "Applicant not found." };
       }
+
+      // STRICT BLOCK: If they already paid, completely block them.
+      if (
+        applicant.status === "PAYMENT_COMPLETED" ||
+        applicant.status === "MEMBER"
+      ) {
+        throw {
+          statusCode: 400,
+          message:
+            "Payment has already been successfully completed for this application.",
+        };
+      }
+
+      // ALLOW RETRIES: They can only generate a payment link if they are in PAYMENT_PENDING
       if (applicant.status !== "PAYMENT_PENDING") {
         throw {
           statusCode: 400,
-          message: "Applicant is not eligible for payment at this stage.",
+          message: `Applicant is not eligible for payment. Current status is ${applicant.status}.`,
         };
       }
 
@@ -33,12 +47,12 @@ class PaymentService {
       const options = {
         amount: this.MEMBERSHIP_FEE * 100,
         currency: "INR",
-        receipt: `receipt_app_${applicantId.substring(0, 8)}`,
+        receipt: `receipt_app_${applicantId.substring(0, 8)}_${Date.now()}`, // Added timestamp to allow multiple retries to have unique receipts
       };
 
       const order = await this.razorpay.orders.create(options);
 
-      // Save the order details in our database
+      // Save the new order details in our database
       await Payment.create(
         {
           applicant_id: applicantId,
@@ -53,9 +67,10 @@ class PaymentService {
 
       return {
         order_id: order.id,
-        amount: order.amount,
+        amount_in_paise: order.amount,
+        amount_in_rupees: this.MEMBERSHIP_FEE,
         currency: order.currency,
-        key_id: process.env.RAZORPAY_KEY_ID, // Frontend needs this to open the checkout modal
+        key_id: process.env.RAZORPAY_KEY_ID,
       };
     } catch (error) {
       await transaction.rollback();

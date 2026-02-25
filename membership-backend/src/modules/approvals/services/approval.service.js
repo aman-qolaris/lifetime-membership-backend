@@ -37,15 +37,32 @@ class ApprovalService {
 
       // 3. Handle REJECTION logic (Applies to both Member and President)
       if (action === "REJECT") {
-        applicant.status =
-          expectedRole === "MEMBER"
-            ? "REJECTED_BY_MEMBER"
-            : "REJECTED_BY_PRESIDENT";
-        await applicant.save({ transaction });
+        if (expectedRole === "MEMBER") {
+          applicant.status = "REJECTED_BY_MEMBER";
+          await applicant.save({ transaction });
+
+          // Generate an edit URL for the frontend to load this specific application
+          const editUrl = `${process.env.FRONTEND_URL}/edit-application/${applicant.id}`;
+
+          await emailService.sendMemberRejectionEmail(
+            applicant.email,
+            applicant.full_name,
+            editUrl,
+          );
+        } else if (expectedRole === "PRESIDENT") {
+          applicant.status = "REJECTED_BY_PRESIDENT";
+          await applicant.save({ transaction });
+
+          await emailService.sendPresidentRejectionEmail(
+            applicant.email,
+            applicant.full_name,
+          );
+        }
+
         await transaction.commit();
         return {
           success: true,
-          message: `Application has been rejected by ${expectedRole.toLowerCase()}.`,
+          message: `Application has been rejected by ${expectedRole.toLowerCase()}. Notification sent to applicant.`,
         };
       }
 

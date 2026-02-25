@@ -11,6 +11,11 @@ const Member = sequelize.define(
     },
     name: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, unique: true, allowNull: false },
+    mobile_number: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: false,
+    },
     role: { type: DataTypes.ENUM("MEMBER", "PRESIDENT"), allowNull: false },
   },
   { tableName: "members", timestamps: true },

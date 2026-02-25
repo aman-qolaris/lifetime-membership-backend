@@ -39,6 +39,34 @@ class AdminController {
         .json({ success: false, message: "Failed to fetch proposers list." });
     }
   }
+
+  async promoteApplicant(req, res) {
+    try {
+      const { applicant_id, registration_number } = req.body;
+
+      // Basic validation
+      if (!applicant_id || !registration_number) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Applicant ID and Registration Number are completely required.",
+        });
+      }
+
+      const result = await adminService.approveAndPromoteToMember(
+        applicant_id,
+        registration_number,
+      );
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error("Error promoting applicant:", error);
+      const statusCode = error.statusCode || 500;
+      return res
+        .status(statusCode)
+        .json({ success: false, message: error.message });
+    }
+  }
 }
 
 export default new AdminController();

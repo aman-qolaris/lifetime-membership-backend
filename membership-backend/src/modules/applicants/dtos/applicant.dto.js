@@ -1,5 +1,8 @@
 import Joi from "joi";
 
+const maxDob = new Date();
+maxDob.setFullYear(maxDob.getFullYear() - 18);
+
 const createApplicantDto = Joi.object({
   full_name: Joi.string().trim().min(2).max(100).required(),
 
@@ -28,8 +31,9 @@ const createApplicantDto = Joi.object({
   office_address: Joi.string().trim().max(500).optional().allow(null, ""),
 
   // ISO date format required
-  date_of_birth: Joi.date().iso().required(),
-
+  date_of_birth: Joi.date().iso().max(maxDob).required().messages({
+    "date.max": "Applicant must be at least 18 years old to apply.",
+  }),
   // Optional ISO date
   marriage_date: Joi.date().iso().optional().allow(null),
 
