@@ -7,7 +7,7 @@ const seedDatabase = async () => {
     await testDbConnection();
     await sequelize.sync({ alter: true });
 
-    // 1. Seed Admin (Password updated to pass strict DTO validation)
+    // 1. Seed Admin
     const adminPhone = "9999999999";
     const existingAdmin = await Admin.findOne({
       where: { phone_number: adminPhone },
@@ -23,7 +23,7 @@ const seedDatabase = async () => {
       );
     }
 
-    // 2. Seed President
+    // 2. Seed President (Added Dummy Mobile Number)
     const presidentEmail = "president@maharashtramandal.com";
     const existingPresident = await Member.findOne({
       where: { role: "PRESIDENT" },
@@ -32,31 +32,36 @@ const seedDatabase = async () => {
       await Member.create({
         name: "Shri President",
         email: presidentEmail,
+        mobile_number: "9000000001", // NEW: Unique mobile number
         role: "PRESIDENT",
       });
       console.log("✅ Default President created.");
     }
 
-    // 3. Seed Multiple Proposer Members
+    // 3. Seed Multiple Proposer Members (Added Dummy Mobile Numbers)
     const initialMembers = [
       {
         name: "Aman Singh",
         email: "aman@maharashtramandal.com",
+        mobile_number: "9000000002", // NEW: Unique mobile number
         role: "MEMBER",
       },
       {
         name: "Rahul Sharma",
         email: "rahul@maharashtramandal.com",
+        mobile_number: "9000000003", // NEW: Unique mobile number
         role: "MEMBER",
       },
       {
         name: "Priya Deshmukh",
         email: "priya@maharashtramandal.com",
+        mobile_number: "9000000004", // NEW: Unique mobile number
         role: "MEMBER",
       },
       {
         name: "Vikram Joshi",
         email: "vikram@maharashtramandal.com",
+        mobile_number: "9000000005", // NEW: Unique mobile number
         role: "MEMBER",
       },
     ];

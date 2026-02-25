@@ -1,6 +1,11 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Admin,Member } from "../../../database/index.js";
+import {
+  Admin,
+  Member,
+  Applicant,
+  sequelize,
+} from "../../../database/index.js";
 import "../../../config/env.js";
 import { Op } from "sequelize";
 class AdminService {
@@ -32,21 +37,94 @@ class AdminService {
 
   async getAllProposers(searchTerm = "") {
     const whereClause = { role: "MEMBER" };
-   
+
     if (searchTerm) {
-      whereClause.name = { 
-        [Op.like]: `%${searchTerm}%` 
+      whereClause.name = {
+        [Op.like]: `%${searchTerm}%`,
       };
     }
 
     const members = await Member.findAll({
       where: whereClause,
-      attributes: ["id", "name"], 
+      attributes: ["id", "name", "mobile_number"],
       order: [["name", "ASC"]],
-      limit: 10 // Only return the top 10 closest matches for performance
+      limit: 10, // Only return the top 10 closest matches for performance
     });
-    
+
     return members;
+  }
+
+  async approveAndPromoteToMember(applicantId, registrationNumber) {
+    const transaction = await sequelize.transaction();
+
+    try {
+      // 1. Find the applicant
+      const applicant = await Applicant.findByPk(applicantId, { transaction });
+
+      if (!applicant) {
+        throw { statusCode: 404, message: "Applicant not found." };
+      }
+
+      // 2. Ensure they have completed payment
+      if (applicant.status !== "PAYMENT_COMPLETED") {
+        throw {
+          statusCode: 400,
+          message: `Applicant cannot be promoted. Current status is ${applicant.status}. Payment must be completed first.`,
+        };
+      }
+
+      // 3. Check if the registration number is already in use
+      const existingReg = await Applicant.findOne({
+        where: { registration_number: registrationNumber },
+        transaction,
+      });
+      if (existingReg) {
+        throw {
+          statusCode: 400,
+          message:
+            "This Registration Number is already assigned to another member.",
+        };
+      }
+
+      // 4. Update the Applicant's final status and assign the number
+      applicant.registration_number = registrationNumber;
+      applicant.status = "MEMBER";
+      await applicant.save({ transaction });
+
+      // 5. Check if they already exist in the Member table (prevent duplicate emails OR mobile numbers)
+      const existingMember = await Member.findOne({
+        where: {
+          [Op.or]: [
+            { email: applicant.email },
+            { mobile_number: applicant.mobile_number },
+          ],
+        },
+        transaction,
+      });
+
+      // 6. Create the Official Member record so they can become a Proposer
+      if (!existingMember) {
+        await Member.create(
+          {
+            name: applicant.full_name,
+            email: applicant.email,
+            mobile_number: applicant.mobile_number, // NEW: Mapping the mobile number securely
+            role: "MEMBER",
+          },
+          { transaction },
+        );
+      }
+
+      await transaction.commit();
+
+      return {
+        success: true,
+        message: `Successfully promoted ${applicant.full_name} to official Member with Registration Number: ${registrationNumber}`,
+      };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   }
 }
 

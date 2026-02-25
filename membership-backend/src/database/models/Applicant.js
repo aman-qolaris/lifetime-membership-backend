@@ -9,6 +9,11 @@ const Applicant = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    registration_number: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: true, // It will be null until the Admin assigns it
+    },
     full_name: { type: DataTypes.STRING, allowNull: false },
     father_or_husband_name: { type: DataTypes.STRING, allowNull: false },
     permanent_address: { type: DataTypes.TEXT, allowNull: false },
@@ -35,6 +40,7 @@ const Applicant = sequelize.define(
         "REJECTED_BY_PRESIDENT",
         "PAYMENT_PENDING",
         "PAYMENT_COMPLETED",
+        "MEMBER",
       ),
       defaultValue: "PENDING_MEMBER_APPROVAL",
     },

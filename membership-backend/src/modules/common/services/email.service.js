@@ -85,6 +85,58 @@ class EmailService {
 
     await this.transporter.sendMail(mailOptions);
   }
+
+  // 4. Sends rejection email from Member with an edit link
+  async sendMemberRejectionEmail(applicantEmail, applicantName, editUrl) {
+    const mailOptions = {
+      from: `"Maharashtra Mandal Raipur" <${process.env.SMTP_USER}>`,
+      to: applicantEmail,
+      subject: "Update Required: Membership Application",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2>Application Update Required</h2>
+          <p>Dear ${applicantName},</p>
+          <p>Your recent Lifetime Membership application was reviewed by your selected Proposer Member.</p>
+          <p><strong>Status:</strong> The Proposer Member has declined to verify the application, stating: <em>"I do not know this applicant."</em></p>
+          <p>Don't worry! You can easily update your application details or select a different Proposer Member by clicking the link below:</p>
+          <a href="${editUrl}" style="display: inline-block; padding: 10px 20px; background-color: #ffc107; color: #333; text-decoration: none; border-radius: 5px; margin-top: 10px;">Edit Application</a>
+          <p style="margin-top: 20px; font-size: 12px; color: #777;">If the button does not work, copy and paste this link into your browser: <br> ${editUrl}</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Member rejection email queued for ${applicantEmail}`);
+    } catch (error) {
+      console.error("❌ Error sending member rejection email:", error);
+    }
+  }
+
+  // 5. Sends rejection email from President (No edit link)
+  async sendPresidentRejectionEmail(applicantEmail, applicantName) {
+    const mailOptions = {
+      from: `"Maharashtra Mandal Raipur" <${process.env.SMTP_USER}>`,
+      to: applicantEmail,
+      subject: "Application Status Update: Membership",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2>Application Status Update</h2>
+          <p>Dear ${applicantName},</p>
+          <p>We appreciate your interest in joining the Maharashtra Mandal Raipur.</p>
+          <p>After careful review by the President, we regret to inform you that your current application for Lifetime Membership has not been approved at this time.</p>
+          <p>If you have any questions, please contact the administrative office.</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`✅ President rejection email queued for ${applicantEmail}`);
+    } catch (error) {
+      console.error("❌ Error sending president rejection email:", error);
+    }
+  }
 }
 
 export default new EmailService();
