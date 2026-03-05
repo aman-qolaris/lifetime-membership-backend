@@ -40,14 +40,21 @@ class AdminService {
 
   // --- NEW: Admin edits applicant details before approval ---
   async updateApplicantDetails(applicantId, updateData) {
-    const applicant = await Applicant.findByPk(applicantId);
+   const applicant = await Applicant.findByPk(applicantId);
     if (!applicant) {
       throw { statusCode: 404, message: "Applicant not found." };
     }
 
-    // Update the record with the new text fields sent by the admin
+    // Update the record
     await applicant.update(updateData);
-    return applicant;
+    
+    // BEST PRACTICE: Re-fetch and return the fully populated object
+    return await Applicant.findByPk(applicantId, {
+      include: [
+        { model: FileUpload, as: "files" },
+        { model: Member, as: "proposer", attributes: ['id', 'name'] }
+      ]
+    });
   }
 
   // --- NEW: Admin Approves or Rejects the application ---
