@@ -25,7 +25,7 @@ class PaymentService {
         transaction,
       });
 
-      const currentFee = feeSetting ? parseInt(feeSetting.value) : 1510;
+      const currentFee = feeSetting ? parseInt(feeSetting.value) + 10 : 1510;
 
       const applicant = await Applicant.findByPk(applicantId, { transaction });
 

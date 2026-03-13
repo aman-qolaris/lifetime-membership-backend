@@ -16,6 +16,10 @@ const Member = sequelize.define(
       unique: true,
       allowNull: false,
     },
+     date_of_birth: { type: DataTypes.DATEONLY, allowNull: false },
+    blood_group: { type: DataTypes.STRING(10) },
+    permanent_address: { type: DataTypes.TEXT, allowNull: false },
+    current_address: { type: DataTypes.TEXT, allowNull: false },
     role: { type: DataTypes.ENUM("MEMBER", "PRESIDENT"), allowNull: false },
     is_active: {
       type: DataTypes.BOOLEAN,
