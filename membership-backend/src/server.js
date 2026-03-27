@@ -9,6 +9,7 @@ import { testDbConnection } from "./config/database.js";
 import { syncDatabase } from "./database/index.js";
 import { initMinio } from "./config/minio.js";
 import apiRoutes from "./routes/index.js";
+import { errorHandler, notFound } from "./middlewares/error.middleware.js";
 
 const app = express();
 
@@ -23,10 +24,9 @@ app.use(morgan("dev"));
 // All routes are now cleanly prefixed with /api/v1 through the central router
 app.use("/api/v1", apiRoutes);
 
-// === GLOBAL ERROR HANDLER ===
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: "API endpoint not found" });
-});
+// === 404 + GLOBAL ERROR HANDLER ===
+app.use(notFound);
+app.use(errorHandler);
 
 // === SERVER INITIALIZATION ===
 const PORT = process.env.PORT || 3000;

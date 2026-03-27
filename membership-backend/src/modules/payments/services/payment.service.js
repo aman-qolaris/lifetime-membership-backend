@@ -1,12 +1,8 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
-import {
-  sequelize,
-  Applicant,
-  Payment,
-  Setting,
-} from "../../../database/index.js";
+import { sequelize } from "../../../database/index.js";
 import "../../../config/env.js";
+import paymentRepository from "../repositories/payment.repository.js";
 
 class PaymentService {
   constructor() {
@@ -21,13 +17,14 @@ class PaymentService {
     const transaction = await sequelize.transaction();
 
     try {
-      const feeSetting = await Setting.findByPk("LIFETIME_MEMBERSHIP_FEE", {
-        transaction,
-      });
+      const feeSetting = await paymentRepository.getFeeSetting(transaction);
 
       const currentFee = feeSetting ? parseInt(feeSetting.value) + 10 : 1510;
 
-      const applicant = await Applicant.findByPk(applicantId, { transaction });
+      const applicant = await paymentRepository.findApplicantById(
+        applicantId,
+        transaction,
+      );
 
       if (!applicant) {
         throw { statusCode: 404, message: "Applicant not found." };
@@ -63,14 +60,14 @@ class PaymentService {
       const order = await this.razorpay.orders.create(options);
 
       // Save the new order details in our database
-      await Payment.create(
+      await paymentRepository.createPayment(
         {
           applicant_id: applicantId,
           razorpay_order_id: order.id,
           amount: currentFee,
           status: "PENDING",
         },
-        { transaction },
+        transaction,
       );
 
       await transaction.commit();
@@ -90,7 +87,7 @@ class PaymentService {
 
   async getMembershipFee() {
     // We don't need a transaction here since we are just reading one value
-    const feeSetting = await Setting.findByPk("LIFETIME_MEMBERSHIP_FEE");
+    const feeSetting = await paymentRepository.getFeeSetting();
     const currentFee = feeSetting ? parseInt(feeSetting.value) : 1510;
 
     return { fee: currentFee };
@@ -124,22 +121,23 @@ class PaymentService {
       }
 
       // If authentic, update the database
-      const paymentRecord = await Payment.findOne({
-        where: { razorpay_order_id },
+      const paymentRecord = await paymentRepository.findPaymentByOrderId(
+        razorpay_order_id,
         transaction,
-      });
+      );
       if (!paymentRecord) {
         throw { statusCode: 404, message: "Payment record not found." };
       }
 
       paymentRecord.status = "COMPLETED";
-      await paymentRecord.save({ transaction });
+      await paymentRepository.savePayment(paymentRecord, transaction);
 
-      const applicant = await Applicant.findByPk(paymentRecord.applicant_id, {
+      const applicant = await paymentRepository.findApplicantById(
+        paymentRecord.applicant_id,
         transaction,
-      });
+      );
       applicant.status = "PAYMENT_COMPLETED";
-      await applicant.save({ transaction });
+      await paymentRepository.saveApplicant(applicant, transaction);
 
       await transaction.commit();
       return {
@@ -150,6 +148,18 @@ class PaymentService {
       await transaction.rollback();
       throw error;
     }
+  }
+
+  async checkApplicantPaymentStatus(applicantId) {
+    const applicant = await paymentRepository.findApplicantById(applicantId);
+    if (!applicant) {
+      throw { statusCode: 404, message: "Applicant not found." };
+    }
+
+    const isPaid =
+      applicant.status === "PAYMENT_COMPLETED" || applicant.status === "MEMBER";
+
+    return { success: true, isPaid, status: applicant.status };
   }
 }
 

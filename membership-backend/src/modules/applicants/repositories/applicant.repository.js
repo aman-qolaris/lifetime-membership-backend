@@ -3,14 +3,16 @@ import {
   Member,
   FileUpload,
   Payment,
+  ApprovalToken,
 } from "../../../database/index.js";
 
 class ApplicantRepository {
   // Creates a new applicant, optionally within a database transaction
   async create(applicantData, transaction = null) {
-    return await Applicant.create(applicantData, { 
-      include: [{ model: FileUpload, as: 'files' }],
-      transaction });
+    return await Applicant.create(applicantData, {
+      include: [{ model: FileUpload, as: "files" }],
+      transaction,
+    });
   }
 
   // Fetches an applicant by ID, including their proposer, uploaded files, and payment status
@@ -47,6 +49,29 @@ class ApplicantRepository {
       order: [["createdAt", "DESC"]],
       include: [{ model: Member, as: "proposer", attributes: ["name"] }],
     });
+  }
+
+  async findApplicantByIdForUpdate(id, transaction = null) {
+    return Applicant.findByPk(id, { transaction });
+  }
+
+  async destroyFileUploadByType(applicantId, file_type, transaction = null) {
+    return FileUpload.destroy({
+      where: { applicant_id: applicantId, file_type },
+      transaction,
+    });
+  }
+
+  async createFileUpload(payload, transaction = null) {
+    return FileUpload.create(payload, { transaction });
+  }
+
+  async createApprovalToken(payload, transaction = null) {
+    return ApprovalToken.create(payload, { transaction });
+  }
+
+  async findMemberById(id, transaction = null) {
+    return Member.findByPk(id, { transaction });
   }
 }
 

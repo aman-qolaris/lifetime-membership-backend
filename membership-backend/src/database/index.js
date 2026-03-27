@@ -1,14 +1,14 @@
 import { sequelize } from "../config/database.js";
 
 // Import Models
-import Admin from "./models/Admin.js";
-import Member from "./models/Member.js";
-import Applicant from "./models/Applicant.js";
-import ApprovalToken from "./models/ApprovalToken.js";
-import Payment from "./models/Payment.js";
-import FileUpload from "./models/FileUpload.js";
-import Setting from "./models/Setting.js";
-import Region from "./models/Region.js";
+import Admin from "../modules/admins/models/admin.model.js";
+import Applicant from "../modules/applicants/models/applicant.model.js";
+import ApprovalToken from "../modules/approvals/models/approvalToken.model.js";
+import FileUpload from "../modules/common/models/fileUpload.model.js";
+import Setting from "../modules/common/models/setting.model.js";
+import Member from "../modules/members/models/member.model.js";
+import Payment from "../modules/payments/models/payment.model.js";
+import Region from "../modules/regions/models/region.model.js";
 
 // Define Associations
 Member.hasMany(Applicant, {

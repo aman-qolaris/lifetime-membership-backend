@@ -2,6 +2,9 @@ import express from "express";
 import applicantController from "../controllers/applicant.controller.js";
 import { upload } from "../../../middlewares/upload.middleware.js";
 import { verifyAdmin } from "../../../middlewares/auth.middleware.js";
+import { validate } from "../../../middlewares/validate.middleware.js";
+import createApplicantDto from "../dtos/applicant.dto.js";
+import asyncHandler from "../../../utils/asyncHandler.js";
 
 const router = express.Router();
 
@@ -13,7 +16,8 @@ router.post(
     { name: "aadhar_front", maxCount: 1 },
     { name: "aadhar_back", maxCount: 1 },
   ]),
-  applicantController.createApplicant.bind(applicantController),
+  validate(createApplicantDto),
+  asyncHandler(applicantController.createApplicant.bind(applicantController)),
 );
 
 router.post(
@@ -25,7 +29,10 @@ router.post(
     { name: "aadhar_front", maxCount: 1 },
     { name: "aadhar_back", maxCount: 1 },
   ]),
-  applicantController.createApplicantByAdmin.bind(applicantController),
+  validate(createApplicantDto),
+  asyncHandler(
+    applicantController.createApplicantByAdmin.bind(applicantController),
+  ),
 );
 
 router.put(
@@ -36,17 +43,18 @@ router.put(
     { name: "aadhar_front", maxCount: 1 },
     { name: "aadhar_back", maxCount: 1 },
   ]),
-  applicantController.resubmitApplicant.bind(applicantController),
+  validate(createApplicantDto),
+  asyncHandler(applicantController.resubmitApplicant.bind(applicantController)),
 );
 
 router.get(
   "/",
   verifyAdmin,
-  applicantController.getApplicants.bind(applicantController),
+  asyncHandler(applicantController.getApplicants.bind(applicantController)),
 );
 router.get(
   "/:id",
-  applicantController.getApplicantById.bind(applicantController),
+  asyncHandler(applicantController.getApplicantById.bind(applicantController)),
 );
 
 export default router;

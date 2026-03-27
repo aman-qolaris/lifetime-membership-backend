@@ -1,11 +1,5 @@
 import crypto from "crypto";
-import {
-  sequelize,
-  ApprovalToken,
-  Member,
-  Applicant,
-  FileUpload, // <-- NEW: Imported FileUpload model
-} from "../../../database/index.js";
+import { sequelize } from "../../../database/index.js";
 import applicantRepository from "../repositories/applicant.repository.js";
 import emailService from "../../common/services/email.service.js";
 
@@ -22,18 +16,19 @@ class ApplicantService {
 
       const token = crypto.randomBytes(32).toString("hex");
 
-      await ApprovalToken.create(
+      await applicantRepository.createApprovalToken(
         {
           applicant_id: applicant.id,
           token: token,
           role_required: "MEMBER",
         },
-        { transaction },
+        transaction,
       );
 
-      const proposer = await Member.findByPk(applicantData.proposer_member_id, {
+      const proposer = await applicantRepository.findMemberById(
+        applicantData.proposer_member_id,
         transaction,
-      });
+      );
       if (proposer) {
         await emailService.sendMemberApprovalEmail(
           proposer.email,
@@ -55,7 +50,10 @@ class ApplicantService {
     const transaction = await sequelize.transaction();
 
     try {
-      const applicant = await Applicant.findByPk(applicantId, { transaction });
+      const applicant = await applicantRepository.findApplicantByIdForUpdate(
+        applicantId,
+        transaction,
+      );
       if (!applicant) {
         throw { statusCode: 404, message: "Applicant not found." };
       }
@@ -64,19 +62,20 @@ class ApplicantService {
       if (updatedData.files && updatedData.files.length > 0) {
         for (const newFile of updatedData.files) {
           // 1. Delete the old file record of this specific type (e.g., old AADHAR_FRONT)
-          await FileUpload.destroy({
-            where: { applicant_id: applicantId, file_type: newFile.file_type },
+          await applicantRepository.destroyFileUploadByType(
+            applicantId,
+            newFile.file_type,
             transaction,
-          });
+          );
 
           // 2. Insert the new file record
-          await FileUpload.create(
+          await applicantRepository.createFileUpload(
             {
               applicant_id: applicantId,
               file_type: newFile.file_type,
               minio_url: newFile.minio_url,
             },
-            { transaction },
+            transaction,
           );
         }
       }
@@ -92,18 +91,18 @@ class ApplicantService {
         );
 
         const newToken = crypto.randomBytes(32).toString("hex");
-        await ApprovalToken.create(
+        await applicantRepository.createApprovalToken(
           {
             applicant_id: applicant.id,
             token: newToken,
             role_required: "MEMBER",
           },
-          { transaction },
+          transaction,
         );
 
-        const proposer = await Member.findByPk(
+        const proposer = await applicantRepository.findMemberById(
           updatedData.proposer_member_id || applicant.proposer_member_id,
-          { transaction },
+          transaction,
         );
 
         if (proposer) {

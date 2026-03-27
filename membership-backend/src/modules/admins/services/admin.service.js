@@ -2,21 +2,13 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import emailService from "../../common/services/email.service.js";
-import {
-  Admin,
-  Member,
-  Applicant,
-  sequelize,
-  FileUpload,
-  Setting,
-  ApprovalToken,
-} from "../../../database/index.js";
+import { sequelize } from "../../../database/index.js";
 import "../../../config/env.js";
-import { Op } from "sequelize";
+import adminRepository from "../repositories/admin.repository.js";
 
 class AdminService {
   async login(phone_number, password) {
-    const admin = await Admin.findOne({ where: { phone_number } });
+    const admin = await adminRepository.findAdminByPhone(phone_number);
     if (!admin) {
       throw { statusCode: 401, message: "Invalid phone number or password." };
     }
@@ -40,21 +32,16 @@ class AdminService {
 
   // --- NEW: Admin edits applicant details before approval ---
   async updateApplicantDetails(applicantId, updateData) {
-   const applicant = await Applicant.findByPk(applicantId);
+    const applicant = await adminRepository.findApplicantById(applicantId);
     if (!applicant) {
       throw { statusCode: 404, message: "Applicant not found." };
     }
 
     // Update the record
-    await applicant.update(updateData);
-    
+    await adminRepository.updateApplicant(applicant, updateData);
+
     // BEST PRACTICE: Re-fetch and return the fully populated object
-    return await Applicant.findByPk(applicantId, {
-      include: [
-        { model: FileUpload, as: "files" },
-        { model: Member, as: "proposer", attributes: ['id', 'name'] }
-      ]
-    });
+    return adminRepository.findApplicantPopulated(applicantId);
   }
 
   // --- NEW: Admin Approves or Rejects the application ---
@@ -62,7 +49,9 @@ class AdminService {
     const transaction = await sequelize.transaction();
 
     try {
-      const applicant = await Applicant.findByPk(applicantId, { transaction });
+      const applicant = await adminRepository.findApplicantById(applicantId, {
+        transaction,
+      });
       if (!applicant) {
         throw { statusCode: 404, message: "Applicant not found." };
       }
@@ -76,7 +65,7 @@ class AdminService {
 
       if (action === "REJECT") {
         applicant.status = "REJECTED_BY_ADMIN";
-        await applicant.save({ transaction });
+        await adminRepository.saveApplicant(applicant, { transaction });
 
         const editUrl = `${process.env.FRONTEND_URL}/edit-application/${applicant.id}`;
 
@@ -97,11 +86,11 @@ class AdminService {
 
       if (action === "APPROVE") {
         applicant.status = "PENDING_PRESIDENT_APPROVAL";
-        await applicant.save({ transaction });
+        await adminRepository.saveApplicant(applicant, { transaction });
 
         // Generate the token for the President
         const newRawToken = crypto.randomBytes(32).toString("hex");
-        await ApprovalToken.create(
+        await adminRepository.createApprovalToken(
           {
             applicant_id: applicant.id,
             token: newRawToken,
@@ -111,10 +100,7 @@ class AdminService {
         );
 
         // Fetch President's email and send the link
-        const president = await Member.findOne({
-          where: { role: "PRESIDENT" },
-          transaction,
-        });
+        const president = await adminRepository.findPresident({ transaction });
 
         if (president) {
           await emailService.sendPresidentApprovalEmail(
@@ -144,41 +130,21 @@ class AdminService {
 
   // ... (All other existing methods remain unchanged)
   async getAllProposers(searchTerm = "") {
-    const whereClause = { role: "MEMBER", is_active: true };
-    if (searchTerm) {
-      whereClause.name = { [Op.like]: `%${searchTerm}%` };
-    }
-    return await Member.findAll({
-      where: whereClause,
-      attributes: ["id", "name", "mobile_number"],
-      order: [["name", "ASC"]],
-      limit: 10,
-    });
+    return adminRepository.findProposers(searchTerm);
   }
 
   async getAllMembersForAdmin() {
-    return await Member.findAll({
-      attributes: [
-        "id",
-        "name",
-        "email",
-        "mobile_number",
-        "role",
-        "is_active",
-        "createdAt",
-      ],
-      order: [["name", "ASC"]],
-    });
+    return adminRepository.findAllMembersForAdmin();
   }
 
   async toggleMemberStatus(memberId) {
-    const member = await Member.findByPk(memberId);
+    const member = await adminRepository.findMemberById(memberId);
     if (!member) throw { statusCode: 404, message: "Member not found." };
     if (member.role === "PRESIDENT")
       throw { statusCode: 400, message: "Cannot change President status." };
 
     member.is_active = !member.is_active;
-    await member.save();
+    await adminRepository.saveMember(member);
     return {
       success: true,
       message: `${member.name} is now ${member.is_active ? "Active" : "Inactive"}.`,
@@ -188,10 +154,12 @@ class AdminService {
   async approveAndPromoteToMember(applicantId, registrationNumber) {
     const transaction = await sequelize.transaction();
     try {
-      const applicant = await Applicant.findByPk(applicantId, {
-        include: [{ model: FileUpload, as: "files" }],
-        transaction,
-      });
+      const applicant = await adminRepository.findApplicantPopulated(
+        applicantId,
+        {
+          transaction,
+        },
+      );
       if (!applicant)
         throw { statusCode: 404, message: "Applicant not found." };
       if (applicant.status !== "PAYMENT_COMPLETED")
@@ -200,10 +168,11 @@ class AdminService {
           message: `Applicant cannot be promoted. Current status is ${applicant.status}. Payment must be completed first.`,
         };
 
-      const existingReg = await Applicant.findOne({
-        where: { registration_number: registrationNumber },
-        transaction,
-      });
+      const existingReg =
+        await adminRepository.findApplicantByRegistrationNumber(
+          registrationNumber,
+          { transaction },
+        );
       if (existingReg)
         throw {
           statusCode: 400,
@@ -212,20 +181,15 @@ class AdminService {
 
       applicant.registration_number = registrationNumber;
       applicant.status = "MEMBER";
-      await applicant.save({ transaction });
+      await adminRepository.saveApplicant(applicant, { transaction });
 
-      const existingMember = await Member.findOne({
-        where: {
-          [Op.or]: [
-            { email: applicant.email },
-            { mobile_number: applicant.mobile_number },
-          ],
-        },
-        transaction,
-      });
+      const existingMember = await adminRepository.findMemberByEmailOrMobile(
+        { email: applicant.email, mobile_number: applicant.mobile_number },
+        { transaction },
+      );
 
       if (!existingMember) {
-        await Member.create(
+        await adminRepository.createMember(
           {
             name: applicant.full_name,
             email: applicant.email,
@@ -254,22 +218,24 @@ class AdminService {
   }
 
   async getSystemSettings() {
-    return await Setting.findAll();
+    return adminRepository.getAllSettings();
   }
 
   async updateMembershipFee(newValue) {
     if (!newValue || isNaN(newValue) || newValue <= 0)
       throw { statusCode: 400, message: "Invalid fee amount." };
 
-    const setting = await Setting.findByPk("LIFETIME_MEMBERSHIP_FEE");
+    const setting = await adminRepository.findSettingByKey(
+      "LIFETIME_MEMBERSHIP_FEE",
+    );
     if (!setting) {
-      await Setting.create({
+      await adminRepository.createSetting({
         key: "LIFETIME_MEMBERSHIP_FEE",
         value: newValue.toString(),
       });
     } else {
       setting.value = newValue.toString();
-      await setting.save();
+      await adminRepository.saveSetting(setting);
     }
     return {
       success: true,

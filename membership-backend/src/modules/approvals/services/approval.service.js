@@ -1,12 +1,7 @@
 import crypto from "crypto";
-import {
-  sequelize,
-  Applicant,
-  ApprovalToken,
-  Member,
-  FileUpload,
-} from "../../../database/index.js";
+import { sequelize } from "../../../database/index.js";
 import emailService from "../../common/services/email.service.js";
+import approvalRepository from "../repositories/approval.repository.js";
 
 class ApprovalService {
   // Handles the state transitions based on who is approving and what action they take
@@ -15,9 +10,9 @@ class ApprovalService {
 
     try {
       // 1. Validate the token
-      const tokenRecord = await ApprovalToken.findOne({
-        where: { token: tokenStr, role_required: expectedRole, is_used: false },
-        include: [{ model: Applicant, as: "applicant" }],
+      const tokenRecord = await approvalRepository.findValidTokenWithApplicant({
+        token: tokenStr,
+        expectedRole,
         transaction,
       });
 
@@ -33,13 +28,13 @@ class ApprovalService {
 
       // 2. Consume the token so it cannot be used twice
       tokenRecord.is_used = true;
-      await tokenRecord.save({ transaction });
+      await approvalRepository.saveToken(tokenRecord, transaction);
 
       // 3. Handle REJECTION logic (Applies to both Member and President)
       if (action === "REJECT") {
         if (expectedRole === "MEMBER") {
           applicant.status = "REJECTED_BY_MEMBER";
-          await applicant.save({ transaction });
+          await approvalRepository.saveApplicant(applicant, transaction);
 
           // Generate an edit URL for the frontend to load this specific application
           const editUrl = `${process.env.FRONTEND_URL}/edit-application/${applicant.id}`;
@@ -51,7 +46,7 @@ class ApprovalService {
           );
         } else if (expectedRole === "PRESIDENT") {
           applicant.status = "REJECTED_BY_PRESIDENT";
-          await applicant.save({ transaction });
+          await approvalRepository.saveApplicant(applicant, transaction);
 
           await emailService.sendPresidentRejectionEmail(
             applicant.email,
@@ -69,7 +64,7 @@ class ApprovalService {
       // 4. Handle MEMBER APPROVAL logic (Now goes to ADMIN)
       if (expectedRole === "MEMBER" && action === "APPROVE") {
         applicant.status = "PENDING_ADMIN_REVIEW"; // <-- CHANGED
-        await applicant.save({ transaction });
+        await approvalRepository.saveApplicant(applicant, transaction);
 
         // Note: We DO NOT generate the President token here anymore.
         // The Admin will do that after verifying the form in the dashboard.
@@ -85,7 +80,7 @@ class ApprovalService {
       // 5. Handle PRESIDENT APPROVAL logic (Goes to Applicant Recheck/Payment)
       if (expectedRole === "PRESIDENT" && action === "APPROVE") {
         applicant.status = "PAYMENT_PENDING";
-        await applicant.save({ transaction });
+        await approvalRepository.saveApplicant(applicant, transaction);
 
         // Generate a URL for the read-only recheck form with the payment button
         const recheckUrl = `${process.env.FRONTEND_URL}/recheck-application/${applicant.id}`;
@@ -111,22 +106,9 @@ class ApprovalService {
 
   // Fetches full applicant details securely using only the email token
   async getApplicantDetailsByToken(tokenStr, expectedRole) {
-    const tokenRecord = await ApprovalToken.findOne({
-      where: { token: tokenStr, role_required: expectedRole },
-      include: [
-        {
-          model: Applicant,
-          as: "applicant",
-          include: [
-            { model: Member, as: "proposer", attributes: ["name"] },
-            {
-              model: FileUpload,
-              as: "files",
-              attributes: ["file_type", "minio_url"],
-            },
-          ],
-        },
-      ],
+    const tokenRecord = await approvalRepository.findTokenWithApplicantDetails({
+      token: tokenStr,
+      expectedRole,
     });
 
     if (!tokenRecord) {

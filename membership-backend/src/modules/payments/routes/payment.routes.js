@@ -1,21 +1,37 @@
 import express from "express";
 import paymentController from "../controllers/payment.controller.js";
+import { validate } from "../../../middlewares/validate.middleware.js";
+import {
+  checkStatusParamsDto,
+  createOrderDto,
+  verifyPaymentDto,
+} from "../dtos/payment.dto.js";
+import asyncHandler from "../../../utils/asyncHandler.js";
 
 const router = express.Router();
 
-router.get("/fee", paymentController.getFee.bind(paymentController));
+router.get(
+  "/fee",
+  asyncHandler(paymentController.getFee.bind(paymentController)),
+);
 
 // Route to create an order (Frontend calls this before opening Razorpay checkout)
 router.post(
   "/create-order",
-  paymentController.createOrder.bind(paymentController),
+  validate(createOrderDto),
+  asyncHandler(paymentController.createOrder.bind(paymentController)),
 );
 
 // Route to verify an order (Frontend calls this after Razorpay checkout succeeds)
-router.post("/verify", paymentController.verifyPayment.bind(paymentController));
+router.post(
+  "/verify",
+  validate(verifyPaymentDto),
+  asyncHandler(paymentController.verifyPayment.bind(paymentController)),
+);
 
 router.get(
   "/status/:applicant_id",
-  paymentController.checkStatus.bind(paymentController),
+  validate(checkStatusParamsDto, { property: "params" }),
+  asyncHandler(paymentController.checkStatus.bind(paymentController)),
 );
 export default router;
