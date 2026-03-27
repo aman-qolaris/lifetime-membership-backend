@@ -1,4 +1,5 @@
 import AppError from "../utils/AppError.js";
+import { cleanupTempUploads } from "../utils/cleanupTempUploads.js";
 
 const toAppError = (err) => {
   if (!err) return new AppError("Unknown error", 500);
@@ -21,8 +22,10 @@ export const notFound = (req, res, next) => {
   next(new AppError(`API endpoint not found: ${req.originalUrl}`, 404));
 };
 
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = async (err, req, res, next) => {
   // eslint-disable-line no-unused-vars
+  await cleanupTempUploads(req);
+
   let normalized = toAppError(err);
 
   // Joi support (in case any Joi errors escape validation middleware)
@@ -38,7 +41,10 @@ export const errorHandler = (err, req, res, next) => {
     const duplicateField = err.errors?.[0]?.path;
     let message = "This record already exists.";
 
-    if (duplicateField === "mobile_number") {
+    if (
+      duplicateField === "mobile_number" ||
+      duplicateField === "mobileNumber"
+    ) {
       message =
         "हा मोबाईल नंबर आधीच नोंदणीकृत आहे. (This mobile number is already registered.)";
     } else if (duplicateField === "email") {

@@ -3,12 +3,12 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import emailService from "../../common/services/email.service.js";
 import { sequelize } from "../../../database/index.js";
-import "../../../config/env.js";
 import adminRepository from "../repositories/admin.repository.js";
+import { cacheDel, cacheGetOrSet, cacheKeys } from "../../../utils/cache.js";
 
 class AdminService {
-  async login(phone_number, password) {
-    const admin = await adminRepository.findAdminByPhone(phone_number);
+  async login(phoneNumber, password) {
+    const admin = await adminRepository.findAdminByPhone(phoneNumber);
     if (!admin) {
       throw { statusCode: 401, message: "Invalid phone number or password." };
     }
@@ -19,14 +19,14 @@ class AdminService {
     }
 
     const token = jwt.sign(
-      { id: admin.id, phone_number: admin.phone_number, role: "ADMIN" },
+      { id: admin.id, phoneNumber: admin.phoneNumber, role: "ADMIN" },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN },
     );
 
     return {
       token,
-      admin: { id: admin.id, phone_number: admin.phone_number },
+      admin: { id: admin.id, phoneNumber: admin.phoneNumber },
     };
   }
 
@@ -72,7 +72,7 @@ class AdminService {
         // We will create this email method in the next step!
         await emailService.sendAdminRejectionEmail(
           applicant.email,
-          applicant.full_name,
+          applicant.fullName,
           editUrl,
         );
 
@@ -92,9 +92,9 @@ class AdminService {
         const newRawToken = crypto.randomBytes(32).toString("hex");
         await adminRepository.createApprovalToken(
           {
-            applicant_id: applicant.id,
+            applicantId: applicant.id,
             token: newRawToken,
-            role_required: "PRESIDENT",
+            roleRequired: "PRESIDENT",
           },
           { transaction },
         );
@@ -105,7 +105,7 @@ class AdminService {
         if (president) {
           await emailService.sendPresidentApprovalEmail(
             president.email,
-            applicant.full_name,
+            applicant.fullName,
             newRawToken,
           );
         }
@@ -143,11 +143,11 @@ class AdminService {
     if (member.role === "PRESIDENT")
       throw { statusCode: 400, message: "Cannot change President status." };
 
-    member.is_active = !member.is_active;
+    member.isActive = !member.isActive;
     await adminRepository.saveMember(member);
     return {
       success: true,
-      message: `${member.name} is now ${member.is_active ? "Active" : "Inactive"}.`,
+      message: `${member.name} is now ${member.isActive ? "Active" : "Inactive"}.`,
     };
   }
 
@@ -179,21 +179,21 @@ class AdminService {
           message: "This Registration Number is already assigned.",
         };
 
-      applicant.registration_number = registrationNumber;
+      applicant.registrationNumber = registrationNumber;
       applicant.status = "MEMBER";
       await adminRepository.saveApplicant(applicant, { transaction });
 
       const existingMember = await adminRepository.findMemberByEmailOrMobile(
-        { email: applicant.email, mobile_number: applicant.mobile_number },
+        { email: applicant.email, mobileNumber: applicant.mobileNumber },
         { transaction },
       );
 
       if (!existingMember) {
         await adminRepository.createMember(
           {
-            name: applicant.full_name,
+            name: applicant.fullName,
             email: applicant.email,
-            mobile_number: applicant.mobile_number,
+            mobileNumber: applicant.mobileNumber,
             role: "MEMBER",
           },
           { transaction },
@@ -202,14 +202,14 @@ class AdminService {
 
       await emailService.sendWelcomeEmail(
         applicant.email,
-        applicant.full_name,
+        applicant.fullName,
         registrationNumber,
       );
 
       await transaction.commit();
       return {
         success: true,
-        message: `Successfully promoted ${applicant.full_name} to official Member with Registration Number: ${registrationNumber}`,
+        message: `Successfully promoted ${applicant.fullName} to official Member with Registration Number: ${registrationNumber}`,
       };
     } catch (error) {
       await transaction.rollback();
@@ -218,7 +218,10 @@ class AdminService {
   }
 
   async getSystemSettings() {
-    return adminRepository.getAllSettings();
+    return cacheGetOrSet(cacheKeys.settingsAll, async () => {
+      const settings = await adminRepository.getAllSettings();
+      return settings.map((s) => s.toJSON());
+    });
   }
 
   async updateMembershipFee(newValue) {
@@ -237,6 +240,9 @@ class AdminService {
       setting.value = newValue.toString();
       await adminRepository.saveSetting(setting);
     }
+
+    cacheDel(cacheKeys.settingsAll);
+
     return {
       success: true,
       message: `Membership fee updated to ₹${newValue} successfully.`,

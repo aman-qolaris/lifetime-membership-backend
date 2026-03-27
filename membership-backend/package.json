@@ -17,6 +17,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.3.1",
     "helmet": "^8.1.0",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
@@ -24,9 +25,11 @@
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "mysql2": "^3.17.5",
+    "node-cache": "^5.1.2",
     "nodemailer": "^8.0.1",
     "razorpay": "^2.9.6",
     "sequelize": "^6.37.7",
+    "sharp": "^0.34.5",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

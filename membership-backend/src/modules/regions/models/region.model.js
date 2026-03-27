@@ -14,7 +14,7 @@ const Region = sequelize.define(
       allowNull: false,
       unique: true, // Prevents duplicate regions like adding "Tatibandh" twice
     },
-    is_active: {
+    isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true, // If false, it hides from the frontend dropdown
     },

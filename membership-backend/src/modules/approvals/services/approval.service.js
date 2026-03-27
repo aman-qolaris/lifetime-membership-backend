@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { sequelize } from "../../../database/index.js";
 import emailService from "../../common/services/email.service.js";
 import approvalRepository from "../repositories/approval.repository.js";
@@ -9,99 +8,155 @@ class ApprovalService {
     const transaction = await sequelize.transaction();
 
     try {
-      // 1. Validate the token
-      const tokenRecord = await approvalRepository.findValidTokenWithApplicant({
-        token: tokenStr,
-        expectedRole,
-        transaction,
-      });
+      const { tokenRecord, applicant } =
+        await this._validateTokenAndLoadApplicant({
+          tokenStr,
+          expectedRole,
+          transaction,
+        });
 
-      if (!tokenRecord) {
-        const error = new Error(
-          "Invalid, expired, or already used approval token.",
-        );
+      await this._consumeApprovalToken({ tokenRecord, transaction });
+
+      let result;
+      if (action === "REJECT") {
+        result = await this._handleRejection({
+          expectedRole,
+          applicant,
+          transaction,
+        });
+      } else if (action === "APPROVE") {
+        result = await this._handleApproval({
+          expectedRole,
+          applicant,
+          transaction,
+        });
+      } else {
+        const error = new Error("Unsupported approval action.");
         error.statusCode = 400;
         throw error;
       }
 
-      const applicant = tokenRecord.applicant;
-
-      // 2. Consume the token so it cannot be used twice
-      tokenRecord.is_used = true;
-      await approvalRepository.saveToken(tokenRecord, transaction);
-
-      // 3. Handle REJECTION logic (Applies to both Member and President)
-      if (action === "REJECT") {
-        if (expectedRole === "MEMBER") {
-          applicant.status = "REJECTED_BY_MEMBER";
-          await approvalRepository.saveApplicant(applicant, transaction);
-
-          // Generate an edit URL for the frontend to load this specific application
-          const editUrl = `${process.env.FRONTEND_URL}/edit-application/${applicant.id}`;
-
-          await emailService.sendMemberRejectionEmail(
-            applicant.email,
-            applicant.full_name,
-            editUrl,
-          );
-        } else if (expectedRole === "PRESIDENT") {
-          applicant.status = "REJECTED_BY_PRESIDENT";
-          await approvalRepository.saveApplicant(applicant, transaction);
-
-          await emailService.sendPresidentRejectionEmail(
-            applicant.email,
-            applicant.full_name,
-          );
-        }
-
-        await transaction.commit();
-        return {
-          success: true,
-          message: `Application has been rejected by ${expectedRole.toLowerCase()}. Notification sent to applicant.`,
-        };
-      }
-
-      // 4. Handle MEMBER APPROVAL logic (Now goes to ADMIN)
-      if (expectedRole === "MEMBER" && action === "APPROVE") {
-        applicant.status = "PENDING_ADMIN_REVIEW"; // <-- CHANGED
-        await approvalRepository.saveApplicant(applicant, transaction);
-
-        // Note: We DO NOT generate the President token here anymore.
-        // The Admin will do that after verifying the form in the dashboard.
-
-        await transaction.commit();
-        return {
-          success: true,
-          message:
-            "Application approved by Member. Forwarded to Admin for review.",
-        };
-      }
-
-      // 5. Handle PRESIDENT APPROVAL logic (Goes to Applicant Recheck/Payment)
-      if (expectedRole === "PRESIDENT" && action === "APPROVE") {
-        applicant.status = "PAYMENT_PENDING";
-        await approvalRepository.saveApplicant(applicant, transaction);
-
-        // Generate a URL for the read-only recheck form with the payment button
-        const recheckUrl = `${process.env.FRONTEND_URL}/recheck-application/${applicant.id}`;
-
-        await emailService.sendPaymentEmail(
-          applicant.email,
-          applicant.full_name,
-          recheckUrl,
-        );
-
-        await transaction.commit();
-        return {
-          success: true,
-          message:
-            "Application approved by President. Form recheck & payment link sent to applicant.",
-        };
-      }
+      await transaction.commit();
+      return result;
     } catch (error) {
       await transaction.rollback();
       throw error;
     }
+  }
+
+  async _validateTokenAndLoadApplicant({
+    tokenStr,
+    expectedRole,
+    transaction,
+  }) {
+    const tokenRecord = await approvalRepository.findValidTokenWithApplicant({
+      token: tokenStr,
+      expectedRole,
+      transaction,
+    });
+
+    if (!tokenRecord) {
+      const error = new Error(
+        "Invalid, expired, or already used approval token.",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return { tokenRecord, applicant: tokenRecord.applicant };
+  }
+
+  async _consumeApprovalToken({ tokenRecord, transaction }) {
+    tokenRecord.isUsed = true;
+    await approvalRepository.saveToken(tokenRecord, transaction);
+  }
+
+  async _handleRejection({ expectedRole, applicant, transaction }) {
+    if (expectedRole === "MEMBER") {
+      await this._rejectByMember({ applicant, transaction });
+    } else if (expectedRole === "PRESIDENT") {
+      await this._rejectByPresident({ applicant, transaction });
+    } else {
+      const error = new Error("Unsupported approver role.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return {
+      success: true,
+      message: `Application has been rejected by ${expectedRole.toLowerCase()}. Notification sent to applicant.`,
+    };
+  }
+
+  async _handleApproval({ expectedRole, applicant, transaction }) {
+    if (expectedRole === "MEMBER") {
+      await this._approveByMember({ applicant, transaction });
+      return {
+        success: true,
+        message:
+          "Application approved by Member. Forwarded to Admin for review.",
+      };
+    }
+
+    if (expectedRole === "PRESIDENT") {
+      await this._approveByPresident({ applicant, transaction });
+      return {
+        success: true,
+        message:
+          "Application approved by President. Form recheck & payment link sent to applicant.",
+      };
+    }
+
+    const error = new Error("Unsupported approver role.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  async _rejectByMember({ applicant, transaction }) {
+    applicant.status = "REJECTED_BY_MEMBER";
+    await approvalRepository.saveApplicant(applicant, transaction);
+
+    const editUrl = this._buildEditApplicationUrl(applicant.id);
+    await emailService.sendMemberRejectionEmail(
+      applicant.email,
+      applicant.fullName,
+      editUrl,
+    );
+  }
+
+  async _rejectByPresident({ applicant, transaction }) {
+    applicant.status = "REJECTED_BY_PRESIDENT";
+    await approvalRepository.saveApplicant(applicant, transaction);
+
+    await emailService.sendPresidentRejectionEmail(
+      applicant.email,
+      applicant.fullName,
+    );
+  }
+
+  async _approveByMember({ applicant, transaction }) {
+    applicant.status = "PENDING_ADMIN_REVIEW";
+    await approvalRepository.saveApplicant(applicant, transaction);
+  }
+
+  async _approveByPresident({ applicant, transaction }) {
+    applicant.status = "PAYMENT_PENDING";
+    await approvalRepository.saveApplicant(applicant, transaction);
+
+    const recheckUrl = this._buildRecheckApplicationUrl(applicant.id);
+    await emailService.sendPaymentEmail(
+      applicant.email,
+      applicant.fullName,
+      recheckUrl,
+    );
+  }
+
+  _buildEditApplicationUrl(applicantId) {
+    return `${process.env.FRONTEND_URL}/edit-application/${applicantId}`;
+  }
+
+  _buildRecheckApplicationUrl(applicantId) {
+    return `${process.env.FRONTEND_URL}/recheck-application/${applicantId}`;
   }
 
   // Fetches full applicant details securely using only the email token
@@ -121,7 +176,7 @@ class ApprovalService {
 
     return {
       applicant: tokenRecord.applicant,
-      is_used: tokenRecord.is_used,
+      isUsed: tokenRecord.isUsed,
     };
   }
 }

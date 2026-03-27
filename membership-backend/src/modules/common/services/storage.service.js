@@ -1,38 +1,76 @@
 import { minioClient, MINIO_BUCKET_NAME } from "../../../config/minio.js";
 import fs from "fs";
+import sharp from "sharp";
+
+const normalizeBaseName = (name) => {
+  const base = String(name || "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9._-]/g, "");
+
+  return base || "upload";
+};
+
+const randomSuffix = () => `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+
+const isImageMime = (mime) =>
+  mime === "image/jpeg" || mime === "image/jpg" || mime === "image/png";
 
 class StorageService {
   // Takes a Multer file object, uploads it to MinIO, and deletes the local copy
   async uploadToMinio(file) {
     if (!file) return null;
 
-    const fileName = `${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`;
-    const metaData = {
-      "Content-Type": file.mimetype,
-    };
+    const safeBaseName = normalizeBaseName(file.fieldname);
 
     try {
-      // 1. Upload the file from the local disk to MinIO
-      await minioClient.fPutObject(
-        MINIO_BUCKET_NAME,
-        fileName,
-        file.path,
-        metaData,
-      );
+      // Images: compress + convert to WebP before upload
+      if (isImageMime(file.mimetype)) {
+        const webpQuality = Number.parseInt(
+          process.env.IMAGE_WEBP_QUALITY || "80",
+          10,
+        );
 
-      // 2. Delete the temporary file from the local disk to free up space
-      fs.unlinkSync(file.path);
+        const inputBuffer = await fs.promises.readFile(file.path);
+        const outputBuffer = await sharp(inputBuffer)
+          .rotate()
+          .webp({
+            quality: Number.isFinite(webpQuality) ? webpQuality : 80,
+          })
+          .toBuffer();
 
-      // 3. Return the exact path where the file can be retrieved
-      return `/${MINIO_BUCKET_NAME}/${fileName}`;
+        const objectName = `${safeBaseName}-${randomSuffix()}.webp`;
+        await minioClient.putObject(
+          MINIO_BUCKET_NAME,
+          objectName,
+          outputBuffer,
+          outputBuffer.length,
+          { "Content-Type": "image/webp" },
+        );
+
+        return `/${MINIO_BUCKET_NAME}/${objectName}`;
+      }
+
+      // Non-images (e.g., PDFs): upload as-is
+      const objectName = `${safeBaseName}-${randomSuffix()}.pdf`;
+      await minioClient.fPutObject(MINIO_BUCKET_NAME, objectName, file.path, {
+        "Content-Type": file.mimetype,
+      });
+
+      return `/${MINIO_BUCKET_NAME}/${objectName}`;
     } catch (error) {
       console.error("MinIO Upload Error:", error);
 
-      // Fallback: Ensure the local file is still deleted even if MinIO fails
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
       throw new Error("Failed to upload file to permanent storage.");
+    } finally {
+      // Always delete the temporary file from local disk to free up space
+      try {
+        if (file?.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch {
+        // best-effort cleanup
+      }
     }
   }
 }

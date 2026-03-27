@@ -3,7 +3,7 @@ import { Region } from "../../../database/index.js";
 class RegionRepository {
   async findActive() {
     return Region.findAll({
-      where: { is_active: true },
+      where: { isActive: true },
       attributes: ["id", "name"],
       order: [["name", "ASC"]],
     });

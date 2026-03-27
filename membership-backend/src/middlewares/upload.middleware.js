@@ -15,24 +15,35 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
+// Never trust user-supplied extensions (originalname). Only use a safe extension derived from a validated mimetype.
+const MIME_TYPE_TO_EXTENSION = Object.freeze({
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "application/pdf": ".pdf",
+});
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, tempDir);
   },
   filename: (req, file, cb) => {
+    const extension = MIME_TYPE_TO_EXTENSION[file.mimetype];
+    if (!extension) {
+      return cb(
+        new Error("Invalid file type. Only JPEG, PNG, and PDF are allowed."),
+      );
+    }
+
     // Generate a unique filename to prevent overwriting
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname),
-    );
+    cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
   },
 });
 
 // Security: Only allow specific file types
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
-  if (allowedTypes.includes(file.mimetype)) {
+  if (MIME_TYPE_TO_EXTENSION[file.mimetype]) {
     cb(null, true);
   } else {
     cb(

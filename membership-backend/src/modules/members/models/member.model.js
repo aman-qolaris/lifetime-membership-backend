@@ -11,17 +11,17 @@ const Member = sequelize.define(
     },
     name: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, unique: true, allowNull: false },
-    mobile_number: {
+    mobileNumber: {
       type: DataTypes.STRING,
       unique: true,
       allowNull: false,
     },
-     date_of_birth: { type: DataTypes.DATEONLY, allowNull: false },
-    blood_group: { type: DataTypes.STRING(10) },
-    permanent_address: { type: DataTypes.TEXT, allowNull: false },
-    current_address: { type: DataTypes.TEXT, allowNull: false },
+    dateOfBirth: { type: DataTypes.DATEONLY, allowNull: false },
+    bloodGroup: { type: DataTypes.STRING(10) },
+    permanentAddress: { type: DataTypes.TEXT, allowNull: false },
+    currentAddress: { type: DataTypes.TEXT, allowNull: false },
     role: { type: DataTypes.ENUM("MEMBER", "PRESIDENT"), allowNull: false },
-    is_active: {
+    isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
       allowNull: false,

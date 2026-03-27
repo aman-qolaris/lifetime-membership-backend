@@ -10,11 +10,11 @@ const ApprovalToken = sequelize.define(
       primaryKey: true,
     },
     token: { type: DataTypes.STRING, unique: true, allowNull: false },
-    role_required: {
+    roleRequired: {
       type: DataTypes.ENUM("MEMBER", "PRESIDENT"),
       allowNull: false,
     },
-    is_used: { type: DataTypes.BOOLEAN, defaultValue: false },
+    isUsed: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: "approval_tokens", timestamps: true },
 );

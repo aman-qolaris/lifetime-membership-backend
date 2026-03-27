@@ -5,21 +5,21 @@ const maxDob = new Date();
 maxDob.setFullYear(maxDob.getFullYear() - 18);
 
 const createApplicantDto = Joi.object({
-  full_name: Joi.string().trim().min(2).max(100).required(),
+  fullName: Joi.string().trim().min(2).max(100).required(),
 
   // NEW: Gender field
   gender: Joi.string().valid("MALE", "FEMALE", "OTHER").required(),
 
-  father_or_husband_name: Joi.string().trim().min(2).max(100).required(),
+  fatherOrHusbandName: Joi.string().trim().min(2).max(100).required(),
 
-  permanent_address: Joi.string().trim().min(10).max(500).required(),
+  permanentAddress: Joi.string().trim().min(10).max(500).required(),
 
-  current_address: Joi.string().trim().min(10).max(500).required(),
+  currentAddress: Joi.string().trim().min(10).max(500).required(),
 
-  is_from_raipur: Joi.boolean().required(),
+  isFromRaipur: Joi.boolean().required(),
 
-  // Smart Validation: Region is required ONLY if is_from_raipur is true
-  region: Joi.string().when("is_from_raipur", {
+  // Smart Validation: Region is required ONLY if isFromRaipur is true
+  region: Joi.string().when("isFromRaipur", {
     is: true,
     then: Joi.string().required().messages({
       "any.required":
@@ -30,7 +30,7 @@ const createApplicantDto = Joi.object({
     otherwise: Joi.string().optional().allow(null, ""),
   }),
 
-  mobile_number: Joi.string()
+  mobileNumber: Joi.string()
     .pattern(/^[6-9][0-9]{9}$/)
     .required()
     .messages({
@@ -44,22 +44,67 @@ const createApplicantDto = Joi.object({
 
   occupation: Joi.string().trim().max(100).required(),
 
-  office_address: Joi.string().trim().max(500).optional().allow(null, ""),
+  officeAddress: Joi.string().trim().max(500).optional().allow(null, ""),
 
-  date_of_birth: Joi.date().iso().max(maxDob).required().messages({
+  dateOfBirth: Joi.date().iso().max(maxDob).required().messages({
     "date.max": "Applicant must be at least 18 years old to apply.",
   }),
 
-  marriage_date: Joi.date().iso().optional().allow(null),
+  marriageDate: Joi.date().iso().optional().allow(null),
 
-  blood_group: Joi.string()
+  bloodGroup: Joi.string()
     .valid("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
     .optional()
     .allow(null),
 
-  membership_type: Joi.string().valid("LIFETIME").required(),
+  membershipType: Joi.string().valid("LIFETIME").required(),
 
-  proposer_member_id: Joi.string().uuid({ version: "uuidv4" }).required(),
-});
+  proposerMemberId: Joi.string().uuid({ version: "uuidv4" }).required(),
+})
+  .rename("full_name", "fullName", { override: true, ignoreUndefined: true })
+  .rename("father_or_husband_name", "fatherOrHusbandName", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("permanent_address", "permanentAddress", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("current_address", "currentAddress", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("is_from_raipur", "isFromRaipur", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("mobile_number", "mobileNumber", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("office_address", "officeAddress", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("date_of_birth", "dateOfBirth", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("marriage_date", "marriageDate", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("blood_group", "bloodGroup", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("membership_type", "membershipType", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("proposer_member_id", "proposerMemberId", {
+    override: true,
+    ignoreUndefined: true,
+  });
 
 export default createApplicantDto;

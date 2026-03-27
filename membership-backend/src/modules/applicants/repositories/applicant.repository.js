@@ -5,6 +5,7 @@ import {
   Payment,
   ApprovalToken,
 } from "../../../database/index.js";
+import { Op } from "sequelize";
 
 class ApplicantRepository {
   // Creates a new applicant, optionally within a database transaction
@@ -23,12 +24,12 @@ class ApplicantRepository {
         {
           model: FileUpload,
           as: "files",
-          attributes: ["file_type", "minio_url"],
+          attributes: ["fileType", "minioUrl"],
         },
         {
           model: Payment,
           as: "payment",
-          attributes: ["amount", "status", "razorpay_order_id"],
+          attributes: ["amount", "status", "razorpayOrderId"],
         },
       ],
     });
@@ -55,15 +56,32 @@ class ApplicantRepository {
     return Applicant.findByPk(id, { transaction });
   }
 
-  async destroyFileUploadByType(applicantId, file_type, transaction = null) {
+  async destroyFileUploadByType(applicantId, fileType, transaction = null) {
     return FileUpload.destroy({
-      where: { applicant_id: applicantId, file_type },
+      where: { applicantId, fileType },
+      transaction,
+    });
+  }
+
+  async destroyFileUploadsByTypes(applicantId, fileTypes, transaction = null) {
+    if (!Array.isArray(fileTypes) || fileTypes.length === 0) return 0;
+
+    return FileUpload.destroy({
+      where: {
+        applicantId,
+        fileType: { [Op.in]: fileTypes },
+      },
       transaction,
     });
   }
 
   async createFileUpload(payload, transaction = null) {
     return FileUpload.create(payload, { transaction });
+  }
+
+  async bulkCreateFileUploads(payloads, transaction = null) {
+    if (!Array.isArray(payloads) || payloads.length === 0) return [];
+    return FileUpload.bulkCreate(payloads, { transaction });
   }
 
   async createApprovalToken(payload, transaction = null) {

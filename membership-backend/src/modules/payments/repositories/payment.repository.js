@@ -13,8 +13,8 @@ class PaymentRepository {
     return Payment.create(payload, { transaction });
   }
 
-  async findPaymentByOrderId(razorpay_order_id, transaction) {
-    return Payment.findOne({ where: { razorpay_order_id }, transaction });
+  async findPaymentByOrderId(razorpayOrderId, transaction) {
+    return Payment.findOne({ where: { razorpayOrderId }, transaction });
   }
 
   async savePayment(payment, transaction) {

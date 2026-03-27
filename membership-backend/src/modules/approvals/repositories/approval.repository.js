@@ -8,7 +8,7 @@ import {
 class ApprovalRepository {
   async findValidTokenWithApplicant({ token, expectedRole, transaction }) {
     return ApprovalToken.findOne({
-      where: { token, role_required: expectedRole, is_used: false },
+      where: { token, roleRequired: expectedRole, isUsed: false },
       include: [{ model: Applicant, as: "applicant" }],
       transaction,
     });
@@ -24,7 +24,7 @@ class ApprovalRepository {
 
   async findTokenWithApplicantDetails({ token, expectedRole }) {
     return ApprovalToken.findOne({
-      where: { token, role_required: expectedRole },
+      where: { token, roleRequired: expectedRole },
       include: [
         {
           model: Applicant,
@@ -34,7 +34,7 @@ class ApprovalRepository {
             {
               model: FileUpload,
               as: "files",
-              attributes: ["file_type", "minio_url"],
+              attributes: ["fileType", "minioUrl"],
             },
           ],
         },

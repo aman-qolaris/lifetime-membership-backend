@@ -9,20 +9,20 @@ const Applicant = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    registration_number: {
+    registrationNumber: {
       type: DataTypes.STRING,
       unique: true,
       allowNull: true, // It will be null until the Admin assigns it
     },
-    full_name: { type: DataTypes.STRING, allowNull: false },
+    fullName: { type: DataTypes.STRING, allowNull: false },
     gender: {
       type: DataTypes.ENUM("MALE", "FEMALE", "OTHER"),
       allowNull: false,
     },
-    father_or_husband_name: { type: DataTypes.STRING, allowNull: false },
-    permanent_address: { type: DataTypes.TEXT, allowNull: false },
-    current_address: { type: DataTypes.TEXT, allowNull: false },
-    is_from_raipur: {
+    fatherOrHusbandName: { type: DataTypes.STRING, allowNull: false },
+    permanentAddress: { type: DataTypes.TEXT, allowNull: false },
+    currentAddress: { type: DataTypes.TEXT, allowNull: false },
+    isFromRaipur: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
@@ -31,15 +31,15 @@ const Applicant = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    mobile_number: { type: DataTypes.STRING, allowNull: false },
+    mobileNumber: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false },
     education: { type: DataTypes.STRING, allowNull: false },
     occupation: { type: DataTypes.STRING, allowNull: false },
-    office_address: { type: DataTypes.TEXT },
-    date_of_birth: { type: DataTypes.DATEONLY, allowNull: false },
-    marriage_date: { type: DataTypes.DATEONLY },
-    blood_group: { type: DataTypes.STRING(10) },
-    membership_type: {
+    officeAddress: { type: DataTypes.TEXT },
+    dateOfBirth: { type: DataTypes.DATEONLY, allowNull: false },
+    marriageDate: { type: DataTypes.DATEONLY },
+    bloodGroup: { type: DataTypes.STRING(10) },
+    membershipType: {
       type: DataTypes.ENUM("LIFETIME"),
       defaultValue: "LIFETIME",
     },

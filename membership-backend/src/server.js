@@ -10,6 +10,7 @@ import { syncDatabase } from "./database/index.js";
 import { initMinio } from "./config/minio.js";
 import apiRoutes from "./routes/index.js";
 import { errorHandler, notFound } from "./middlewares/error.middleware.js";
+import { globalLimiter } from "./middlewares/rateLimit.middleware.js";
 
 const app = express();
 
@@ -19,6 +20,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
+
+// Basic abuse protection (applies to all routes)
+app.use(globalLimiter);
 
 // === API ROUTES ===
 // All routes are now cleanly prefixed with /api/v1 through the central router

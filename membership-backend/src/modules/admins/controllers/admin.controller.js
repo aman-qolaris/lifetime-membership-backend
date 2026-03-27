@@ -3,7 +3,7 @@ import adminService from "../services/admin.service.js";
 class AdminController {
   async login(req, res) {
     const result = await adminService.login(
-      req.body.phone_number,
+      req.body.phoneNumber,
       req.body.password,
     );
     return res.status(200).json({ success: true, data: result });
@@ -55,10 +55,10 @@ class AdminController {
   }
 
   async promoteApplicant(req, res) {
-    const { applicant_id, registration_number } = req.body;
+    const { applicantId, registrationNumber } = req.body;
     const result = await adminService.approveAndPromoteToMember(
-      applicant_id,
-      registration_number,
+      applicantId,
+      registrationNumber,
     );
     return res.status(200).json(result);
   }

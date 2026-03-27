@@ -9,7 +9,7 @@ const Payment = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    razorpay_order_id: {
+    razorpayOrderId: {
       type: DataTypes.STRING,
       unique: true,
       allowNull: false,

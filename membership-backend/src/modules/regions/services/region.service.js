@@ -1,16 +1,25 @@
 import regionRepository from "../repositories/region.repository.js";
+import { cacheDel, cacheGetOrSet, cacheKeys } from "../../../utils/cache.js";
 
 class RegionService {
   static async getActiveRegions() {
-    return regionRepository.findActive();
+    return cacheGetOrSet(cacheKeys.regionsActive, async () => {
+      const regions = await regionRepository.findActive();
+      return regions.map((r) => r.toJSON());
+    });
   }
 
   static async getAllRegionsForAdmin() {
-    return regionRepository.findAll();
+    return cacheGetOrSet(cacheKeys.regionsAll, async () => {
+      const regions = await regionRepository.findAll();
+      return regions.map((r) => r.toJSON());
+    });
   }
 
   static async createRegion({ name }) {
-    return regionRepository.create({ name: name.trim() });
+    const region = await regionRepository.create({ name: name.trim() });
+    cacheDel([cacheKeys.regionsActive, cacheKeys.regionsAll]);
+    return region;
   }
 
   static async toggleRegionStatus({ id }) {
@@ -19,8 +28,10 @@ class RegionService {
       throw { statusCode: 404, message: "Region not found." };
     }
 
-    region.is_active = !region.is_active;
+    region.isActive = !region.isActive;
     await regionRepository.save(region);
+
+    cacheDel([cacheKeys.regionsActive, cacheKeys.regionsAll]);
 
     return region;
   }

@@ -9,8 +9,8 @@ import {
 import { Op } from "sequelize";
 
 class AdminRepository {
-  async findAdminByPhone(phone_number) {
-    return Admin.findOne({ where: { phone_number } });
+  async findAdminByPhone(phoneNumber) {
+    return Admin.findOne({ where: { phoneNumber } });
   }
 
   async findApplicantById(applicantId, { transaction } = {}) {
@@ -44,14 +44,14 @@ class AdminRepository {
   }
 
   async findProposers(searchTerm = "") {
-    const whereClause = { role: "MEMBER", is_active: true };
+    const whereClause = { role: "MEMBER", isActive: true };
     if (searchTerm) {
       whereClause.name = { [Op.like]: `%${searchTerm}%` };
     }
 
     return Member.findAll({
       where: whereClause,
-      attributes: ["id", "name", "mobile_number"],
+      attributes: ["id", "name", "mobileNumber"],
       order: [["name", "ASC"]],
       limit: 10,
     });
@@ -63,9 +63,9 @@ class AdminRepository {
         "id",
         "name",
         "email",
-        "mobile_number",
+        "mobileNumber",
         "role",
-        "is_active",
+        "isActive",
         "createdAt",
       ],
       order: [["name", "ASC"]],
@@ -85,18 +85,18 @@ class AdminRepository {
     { transaction } = {},
   ) {
     return Applicant.findOne({
-      where: { registration_number: registrationNumber },
+      where: { registrationNumber },
       transaction,
     });
   }
 
   async findMemberByEmailOrMobile(
-    { email, mobile_number },
+    { email, mobileNumber },
     { transaction } = {},
   ) {
     return Member.findOne({
       where: {
-        [Op.or]: [{ email }, { mobile_number }],
+        [Op.or]: [{ email }, { mobileNumber }],
       },
       transaction,
     });

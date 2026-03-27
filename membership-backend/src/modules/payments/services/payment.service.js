@@ -1,7 +1,6 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import { sequelize } from "../../../database/index.js";
-import "../../../config/env.js";
 import paymentRepository from "../repositories/payment.repository.js";
 
 class PaymentService {
@@ -62,8 +61,8 @@ class PaymentService {
       // Save the new order details in our database
       await paymentRepository.createPayment(
         {
-          applicant_id: applicantId,
-          razorpay_order_id: order.id,
+          applicantId,
+          razorpayOrderId: order.id,
           amount: currentFee,
           status: "PENDING",
         },
@@ -73,11 +72,11 @@ class PaymentService {
       await transaction.commit();
 
       return {
-        order_id: order.id,
-        amount_in_paise: order.amount,
-        amount_in_rupees: currentFee,
+        orderId: order.id,
+        amountInPaise: order.amount,
+        amountInRupees: currentFee,
         currency: order.currency,
-        key_id: process.env.RAZORPAY_KEY_ID,
+        keyId: process.env.RAZORPAY_KEY_ID,
       };
     } catch (error) {
       await transaction.rollback();
@@ -95,15 +94,15 @@ class PaymentService {
 
   // 2. Cryptographically verifies the payment after frontend checkout is done
   async verifyPaymentSignature(
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature,
   ) {
     const transaction = await sequelize.transaction();
 
     try {
       // Create the expected signature using our secret key
-      const body = razorpay_order_id + "|" + razorpay_payment_id;
+      const body = razorpayOrderId + "|" + razorpayPaymentId;
       const expectedSignature = crypto
         .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
         .update(body.toString())
@@ -111,7 +110,7 @@ class PaymentService {
 
       console.log("EXPECTED SIGNATURE:", expectedSignature);
 
-      const isAuthentic = expectedSignature === razorpay_signature;
+      const isAuthentic = expectedSignature === razorpaySignature;
 
       if (!isAuthentic) {
         throw {
@@ -122,7 +121,7 @@ class PaymentService {
 
       // If authentic, update the database
       const paymentRecord = await paymentRepository.findPaymentByOrderId(
-        razorpay_order_id,
+        razorpayOrderId,
         transaction,
       );
       if (!paymentRecord) {
@@ -133,7 +132,7 @@ class PaymentService {
       await paymentRepository.savePayment(paymentRecord, transaction);
 
       const applicant = await paymentRepository.findApplicantById(
-        paymentRecord.applicant_id,
+        paymentRecord.applicantId,
         transaction,
       );
       applicant.status = "PAYMENT_COMPLETED";

@@ -1,7 +1,7 @@
 import Joi from "joi";
 
 export const adminLoginDto = Joi.object({
-  phone_number: Joi.string()
+  phoneNumber: Joi.string()
     .trim()
     .pattern(/^[6-9][0-9]{9}$/)
     .required()
@@ -28,4 +28,7 @@ export const adminLoginDto = Joi.object({
         "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
       "any.required": "Password is required.",
     }),
+}).rename("phone_number", "phoneNumber", {
+  override: true,
+  ignoreUndefined: true,
 });

@@ -12,29 +12,38 @@ import Region from "../modules/regions/models/region.model.js";
 
 // Define Associations
 Member.hasMany(Applicant, {
-  foreignKey: "proposer_member_id",
+  foreignKey: { name: "proposerMemberId", field: "proposer_member_id" },
   as: "proposed_applicants",
 });
 Applicant.belongsTo(Member, {
-  foreignKey: "proposer_member_id",
+  foreignKey: { name: "proposerMemberId", field: "proposer_member_id" },
   as: "proposer",
 });
 
 Applicant.hasMany(ApprovalToken, {
-  foreignKey: "applicant_id",
+  foreignKey: { name: "applicantId", field: "applicant_id" },
   as: "approval_tokens",
 });
 ApprovalToken.belongsTo(Applicant, {
-  foreignKey: "applicant_id",
+  foreignKey: { name: "applicantId", field: "applicant_id" },
   as: "applicant",
 });
 
-Applicant.hasOne(Payment, { foreignKey: "applicant_id", as: "payment" });
-Payment.belongsTo(Applicant, { foreignKey: "applicant_id", as: "applicant" });
+Applicant.hasOne(Payment, {
+  foreignKey: { name: "applicantId", field: "applicant_id" },
+  as: "payment",
+});
+Payment.belongsTo(Applicant, {
+  foreignKey: { name: "applicantId", field: "applicant_id" },
+  as: "applicant",
+});
 
-Applicant.hasMany(FileUpload, { foreignKey: "applicant_id", as: "files" });
+Applicant.hasMany(FileUpload, {
+  foreignKey: { name: "applicantId", field: "applicant_id" },
+  as: "files",
+});
 FileUpload.belongsTo(Applicant, {
-  foreignKey: "applicant_id",
+  foreignKey: { name: "applicantId", field: "applicant_id" },
   as: "applicant",
 });
 

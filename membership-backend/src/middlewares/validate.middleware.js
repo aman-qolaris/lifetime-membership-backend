@@ -1,5 +1,6 @@
 import Joi from "joi";
 import AppError from "../utils/AppError.js";
+import { cleanupTempUploads } from "../utils/cleanupTempUploads.js";
 
 export const validate = (
   schema,
@@ -21,6 +22,8 @@ export const validate = (
       req[property] = validated;
       return next();
     } catch (error) {
+      await cleanupTempUploads(req);
+
       if (error instanceof Joi.ValidationError || error?.isJoi) {
         const details = error.details || [];
         const errors = details.map((d) => d.message);

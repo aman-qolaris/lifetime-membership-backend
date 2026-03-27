@@ -31,7 +31,7 @@ class RegionController {
 
     return res.status(200).json({
       success: true,
-      message: `${region.name} is now ${region.is_active ? "Visible" : "Hidden"} in the form.`,
+      message: `${region.name} is now ${region.isActive ? "Visible" : "Hidden"} in the form.`,
       data: region,
     });
   }

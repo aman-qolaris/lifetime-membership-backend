@@ -7,9 +7,17 @@ export const reviewApplicantDto = Joi.object({
 });
 
 export const promoteApplicantDto = Joi.object({
-  applicant_id: Joi.string().uuid({ version: "uuidv4" }).required(),
-  registration_number: Joi.string().trim().min(1).max(50).required(),
-});
+  applicantId: Joi.string().uuid({ version: "uuidv4" }).required(),
+  registrationNumber: Joi.string().trim().min(1).max(50).required(),
+})
+  .rename("applicant_id", "applicantId", {
+    override: true,
+    ignoreUndefined: true,
+  })
+  .rename("registration_number", "registrationNumber", {
+    override: true,
+    ignoreUndefined: true,
+  });
 
 export const updateFeeDto = Joi.object({
   amount: Joi.number().positive().required(),

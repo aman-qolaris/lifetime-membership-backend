@@ -1,10 +1,10 @@
 import PDFDocument from "pdfkit";
-import "../../../config/env.js"; // <-- NEW: Ensure environment variables are loaded
+import sharp from "sharp";
 
 class PdfService {
   /**
    * Generates a digital ID card as a Buffer in memory
-   * @param {Object} memberData - The member's details (must include photo_url and address)
+   * @param {Object} memberData - The member's details (must include photoUrl/photo_url and address)
    * @returns {Promise<Buffer>} - The generated PDF buffer
    */
   async generateIdCardBuffer(memberData) {
@@ -51,10 +51,12 @@ class PdfService {
           .stroke();
 
         // 3. Profile Photo (Left Side)
-        if (memberData.photo_url) {
+        const photoUrl = memberData.photoUrl ?? memberData.photo_url;
+
+        if (photoUrl) {
           try {
             // --- NEW FIX START ---
-            let fullPhotoUrl = memberData.photo_url;
+            let fullPhotoUrl = photoUrl;
 
             // If the URL is just a path (e.g. "/membership-uploads/123.jpg"), add the MinIO server details
             if (!fullPhotoUrl.startsWith("http")) {
@@ -71,7 +73,16 @@ class PdfService {
             // --- NEW FIX END ---
 
             const arrayBuffer = await response.arrayBuffer();
-            const imageBuffer = Buffer.from(arrayBuffer);
+            let imageBuffer = Buffer.from(arrayBuffer);
+
+            const contentType = response.headers.get("content-type") || "";
+            const looksLikeWebp =
+              contentType.includes("image/webp") ||
+              String(fullPhotoUrl).toLowerCase().includes(".webp");
+
+            if (looksLikeWebp) {
+              imageBuffer = await sharp(imageBuffer).png().toBuffer();
+            }
 
             // Draw image at (X: 10, Y: 45) with Width: 55, Height: 70
             doc.image(imageBuffer, 10, 45, { width: 55, height: 70 });
@@ -114,7 +125,7 @@ class PdfService {
           .font("Helvetica")
           .text(`Reg No: `, startX, currentY, { continued: true })
           .font("Helvetica-Bold")
-          .text(memberData.registration_number);
+          .text(memberData.registrationNumber);
         currentY += 10;
 
         // Mobile
@@ -122,7 +133,7 @@ class PdfService {
           .font("Helvetica")
           .text(`Mobile: `, startX, currentY, { continued: true })
           .font("Helvetica-Bold")
-          .text(memberData.mobile_number);
+          .text(memberData.mobileNumber);
         currentY += 10;
 
         // Email

@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import "../config/env.js";
 import {
   sequelize,
   Admin,
@@ -13,20 +14,40 @@ const seedDatabase = async () => {
     await testDbConnection();
     await sequelize.sync({ alter: true });
 
+    const memberDefaults = {
+      dateOfBirth: "1990-01-01",
+      permanentAddress: "Raipur",
+      currentAddress: "Raipur",
+    };
+
     // 1. Seed Admin
-    const adminPhone = "9999999999";
+    const adminPhone = process.env.SEED_ADMIN_PHONE_NUMBER;
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      throw new Error(
+        "Missing SEED_ADMIN_PASSWORD. Refusing to seed a default admin without an explicit password.",
+      );
+    }
+
+    if (!adminPhone) {
+      throw new Error(
+        "Missing SEED_ADMIN_PHONE_NUMBER. Refusing to seed a default admin without an explicit phone number.",
+      );
+    }
+
     const existingAdmin = await Admin.findOne({
-      where: { phone_number: adminPhone },
+      where: { phoneNumber: adminPhone },
     });
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash("Admin@1234", 10);
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
       await Admin.create({
-        phone_number: adminPhone,
+        phoneNumber: adminPhone,
         password: hashedPassword,
       });
-      console.log(
-        "✅ Default Admin created. Phone: 9999999999 | Pass: Admin@1234",
-      );
+      console.log("✅ Default Admin created.", {
+        phoneNumber: adminPhone,
+      });
     }
 
     // 2. Seed President (Added Dummy Mobile Number)
@@ -36,9 +57,10 @@ const seedDatabase = async () => {
     });
     if (!existingPresident) {
       await Member.create({
+        ...memberDefaults,
         name: "Shri President",
         email: presidentEmail,
-        mobile_number: "9000000001", // NEW: Unique mobile number
+        mobileNumber: "9000000001", // NEW: Unique mobile number
         role: "PRESIDENT",
       });
       console.log("✅ Default President created.");
@@ -47,27 +69,31 @@ const seedDatabase = async () => {
     // 3. Seed Multiple Proposer Members (Added Dummy Mobile Numbers)
     const initialMembers = [
       {
+        ...memberDefaults,
         name: "Aman Singh",
         email: "aman@maharashtramandal.com",
-        mobile_number: "9000000002", // NEW: Unique mobile number
+        mobileNumber: "9000000002", // NEW: Unique mobile number
         role: "MEMBER",
       },
       {
+        ...memberDefaults,
         name: "Rahul Sharma",
         email: "rahul@maharashtramandal.com",
-        mobile_number: "9000000003", // NEW: Unique mobile number
+        mobileNumber: "9000000003", // NEW: Unique mobile number
         role: "MEMBER",
       },
       {
+        ...memberDefaults,
         name: "Priya Deshmukh",
         email: "priya@maharashtramandal.com",
-        mobile_number: "9000000004", // NEW: Unique mobile number
+        mobileNumber: "9000000004", // NEW: Unique mobile number
         role: "MEMBER",
       },
       {
+        ...memberDefaults,
         name: "Vikram Joshi",
         email: "vikram@maharashtramandal.com",
-        mobile_number: "9000000005", // NEW: Unique mobile number
+        mobileNumber: "9000000005", // NEW: Unique mobile number
         role: "MEMBER",
       },
     ];
@@ -106,7 +132,7 @@ const seedDatabase = async () => {
     for (const regionName of defaultRegions) {
       await Region.findOrCreate({
         where: { name: regionName },
-        defaults: { is_active: true },
+        defaults: { isActive: true },
       });
     }
     console.log("✅ Regions seeded successfully!");

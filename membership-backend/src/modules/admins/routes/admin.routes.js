@@ -3,6 +3,7 @@ import adminController from "../controllers/admin.controller.js";
 import { verifyAdmin } from "../../../middlewares/auth.middleware.js";
 import { validate } from "../../../middlewares/validate.middleware.js";
 import { adminLoginDto } from "../dtos/admin.dto.js";
+import { loginLimiter } from "../../../middlewares/rateLimit.middleware.js";
 import {
   editApplicantDto,
   idParamsDto,
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.post(
   "/login",
+  loginLimiter,
   validate(adminLoginDto),
   asyncHandler(adminController.login.bind(adminController)),
 );

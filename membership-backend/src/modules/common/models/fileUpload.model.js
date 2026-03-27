@@ -9,7 +9,7 @@ const FileUpload = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    file_type: {
+    fileType: {
       type: DataTypes.ENUM(
         "PHOTO",
         "SIGNATURE",
@@ -19,7 +19,7 @@ const FileUpload = sequelize.define(
       ),
       allowNull: false,
     },
-    minio_url: { type: DataTypes.STRING, allowNull: false },
+    minioUrl: { type: DataTypes.STRING, allowNull: false },
   },
   { tableName: "file_uploads", timestamps: true },
 );
