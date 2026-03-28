@@ -30,17 +30,66 @@ class AdminService {
     };
   }
 
-  // --- NEW: Admin edits applicant details before approval ---
+  // --- UPDATED: Admin edits applicant details before approval ---
   async updateApplicantDetails(applicantId, updateData) {
+    if (!updateData || typeof updateData !== "object") {
+      throw {
+        statusCode: 400,
+        message:
+          "Invalid request body. Send JSON with Content-Type: application/json.",
+      };
+    }
+
     const applicant = await adminRepository.findApplicantById(applicantId);
     if (!applicant) {
       throw { statusCode: 404, message: "Applicant not found." };
     }
 
-    // Update the record
-    await adminRepository.updateApplicant(applicant, updateData);
+    // 1. Define the exact fields an admin is allowed to modify (Security Best Practice)
+    const allowedFields = [
+      "fullName",
+      "gender",
+      "fatherOrHusbandName",
+      "permanentAddress",
+      "currentAddress",
+      "isFromRaipur",
+      "region",
+      "mobileNumber",
+      "email",
+      "education",
+      "occupation",
+      "officeAddress",
+      "dateOfBirth",
+      "marriageDate",
+      "bloodGroup",
+      "membershipType",
+      "proposerMemberId",
+    ];
 
-    // BEST PRACTICE: Re-fetch and return the fully populated object
+    const sanitizedUpdateData = {};
+
+    // 2. Safely extract only the permitted camelCase fields provided in the request
+    for (const field of allowedFields) {
+      if (updateData[field] !== undefined) {
+        sanitizedUpdateData[field] = updateData[field];
+      }
+    }
+
+    // 3. Optional Fallback: If your frontend still sends some snake_case keys, map them manually here
+    if (updateData.full_name)
+      sanitizedUpdateData.fullName = updateData.full_name;
+    if (updateData.phone_number)
+      sanitizedUpdateData.mobileNumber = updateData.phone_number;
+
+    // 4. Ensure we actually have data to update before hitting the database
+    if (Object.keys(sanitizedUpdateData).length === 0) {
+      throw { statusCode: 400, message: "No valid editable fields provided." };
+    }
+
+    // 5. Update the record using the safely mapped data
+    await adminRepository.updateApplicant(applicant, sanitizedUpdateData);
+
+    // 6. Re-fetch and return the fully populated object
     return adminRepository.findApplicantPopulated(applicantId);
   }
 
@@ -194,6 +243,10 @@ class AdminService {
             name: applicant.fullName,
             email: applicant.email,
             mobileNumber: applicant.mobileNumber,
+            dateOfBirth: applicant.dateOfBirth,
+            permanentAddress: applicant.permanentAddress,
+            currentAddress: applicant.currentAddress,
+            bloodGroup: applicant.bloodGroup,
             role: "MEMBER",
           },
           { transaction },
