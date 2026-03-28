@@ -19,6 +19,22 @@ class PaymentController {
       req.body.razorpaySignature,
     );
 
+    const applicantId = result?.data?.applicantId;
+    if (applicantId) {
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/applicant")
+          .to(`applicant:${applicantId}`)
+          .emit("payment:status", {
+            applicantId,
+            status: result.data.status,
+            razorpayOrderId: result.data.razorpayOrderId,
+            razorpayPaymentId: result.data.razorpayPaymentId,
+            isPaid: true,
+          });
+      }
+    }
+
     return res.status(200).json(result);
   }
 

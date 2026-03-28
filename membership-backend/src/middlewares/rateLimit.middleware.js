@@ -1,4 +1,35 @@
 import rateLimit from "express-rate-limit";
+import Redis from "ioredis";
+import { RedisStore } from "rate-limit-redis";
+
+let redisClient;
+const getRedisClient = () => {
+  if (redisClient) return redisClient;
+
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) return null;
+
+  redisClient = new Redis(redisUrl, {
+    maxRetriesPerRequest: 2,
+    enableReadyCheck: true,
+  });
+
+  redisClient.on("error", () => {
+    // Keep quiet to avoid log spam; express-rate-limit will fail open.
+  });
+
+  return redisClient;
+};
+
+const getRedisStore = (prefix) => {
+  const redis = getRedisClient();
+  if (!redis) return undefined;
+
+  return new RedisStore({
+    sendCommand: (...args) => redis.call(...args),
+    prefix,
+  });
+};
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = Number.parseInt(String(value), 10);
@@ -16,6 +47,8 @@ export const globalLimiter = rateLimit({
   max: parsePositiveInt(process.env.RATE_LIMIT_MAX, 300),
   standardHeaders: true,
   legacyHeaders: false,
+  store: getRedisStore("rl:global:"),
+  passOnStoreError: true,
   message: defaultMessage,
 });
 
@@ -27,6 +60,8 @@ export const loginLimiter = rateLimit({
   max: parsePositiveInt(process.env.RATE_LIMIT_LOGIN_MAX, 10),
   standardHeaders: true,
   legacyHeaders: false,
+  store: getRedisStore("rl:login:"),
+  passOnStoreError: true,
   message: {
     success: false,
     message: "Too many login attempts, please try again later.",

@@ -1,4 +1,13 @@
 import applicantService from "../services/applicant.service.js";
+import jwt from "jsonwebtoken";
+
+const buildApplicantSocketToken = (applicantId) => {
+  // Token used only for Socket.io namespace authentication.
+  // Clients should store it locally; we don't re-issue it from public endpoints.
+  return jwt.sign({ role: "APPLICANT", applicantId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.APPLICANT_SOCKET_JWT_EXPIRES_IN || "30d",
+  });
+};
 
 class ApplicantController {
   // Handles the POST /api/applicants endpoint
@@ -8,12 +17,22 @@ class ApplicantController {
       req.files,
     );
 
+    const io = req.app.get("io");
+    if (io) {
+      io.of("/admin").to("admins").emit("admin:applicant:new", {
+        applicantId: newApplicant.id,
+        status: newApplicant.status,
+        submittedAt: newApplicant.createdAt,
+      });
+    }
+
     return res.status(201).json({
       success: true,
       message: "Application submitted successfully. Pending member approval.",
       data: {
         id: newApplicant.id,
         status: newApplicant.status,
+        socketToken: buildApplicantSocketToken(newApplicant.id),
       },
     });
   }
@@ -24,6 +43,15 @@ class ApplicantController {
       req.body,
       req.files,
     );
+
+    const io = req.app.get("io");
+    if (io) {
+      io.of("/admin").to("admins").emit("admin:applicant:new", {
+        applicantId: newApplicant.id,
+        status: newApplicant.status,
+        submittedAt: newApplicant.createdAt,
+      });
+    }
 
     return res.status(201).json({
       success: true,

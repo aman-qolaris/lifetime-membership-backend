@@ -32,6 +32,24 @@ class AdminController {
     const { action } = req.body;
 
     const result = await adminService.processAdminReview(id, action);
+
+    const io = req.app.get("io");
+    if (io) {
+      const nextStatus =
+        action === "REJECT"
+          ? "REJECTED_BY_ADMIN"
+          : "PENDING_PRESIDENT_APPROVAL";
+
+      io.of("/admin").to("admins").emit("admin:applicant:status", {
+        applicantId: id,
+        status: nextStatus,
+      });
+
+      io.of("/applicant").to(`applicant:${id}`).emit("approval:status", {
+        applicantId: id,
+        status: nextStatus,
+      });
+    }
     return res.status(200).json(result);
   }
 

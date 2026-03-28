@@ -85,6 +85,11 @@ class ApprovalService {
     return {
       success: true,
       message: `Application has been rejected by ${expectedRole.toLowerCase()}. Notification sent to applicant.`,
+      data: {
+        applicantId: applicant.id,
+        status: applicant.status,
+        decidedBy: expectedRole,
+      },
     };
   }
 
@@ -95,6 +100,11 @@ class ApprovalService {
         success: true,
         message:
           "Application approved by Member. Forwarded to Admin for review.",
+        data: {
+          applicantId: applicant.id,
+          status: applicant.status,
+          decidedBy: expectedRole,
+        },
       };
     }
 
@@ -104,6 +114,11 @@ class ApprovalService {
         success: true,
         message:
           "Application approved by President. Form recheck & payment link sent to applicant.",
+        data: {
+          applicantId: applicant.id,
+          status: applicant.status,
+          decidedBy: expectedRole,
+        },
       };
     }
 

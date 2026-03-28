@@ -142,6 +142,12 @@ class PaymentService {
       return {
         success: true,
         message: "Payment verified and application is fully completed.",
+        data: {
+          applicantId: applicant.id,
+          status: applicant.status,
+          razorpayOrderId,
+          razorpayPaymentId,
+        },
       };
     } catch (error) {
       await transaction.rollback();
