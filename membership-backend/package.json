@@ -14,12 +14,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
-    "@socket.io/redis-adapter": "^8.3.0",
     "helmet": "^8.1.0",
     "ioredis": "^5.7.0",
     "joi": "^18.0.2",
@@ -30,8 +30,8 @@
     "mysql2": "^3.17.5",
     "node-cache": "^5.1.2",
     "nodemailer": "^8.0.4",
-    "razorpay": "^2.9.6",
     "rate-limit-redis": "^4.2.1",
+    "razorpay": "^2.9.6",
     "sequelize": "^6.37.8",
     "sharp": "^0.34.5",
     "socket.io": "^4.8.1",
@@ -42,9 +42,9 @@
     "dottie": "2.0.7"
   },
   "devDependencies": {
+    "@express-rate-limit/tsconfig": "^1.0.2",
     "jest": "^30.3.0",
     "nodemon": "^3.1.14",
-    "@express-rate-limit/tsconfig": "^1.0.2",
     "sqlite3": "^6.0.1",
     "supertest": "^7.2.2"
   }
