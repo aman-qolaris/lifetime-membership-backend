@@ -19,7 +19,17 @@ export const validate = (
         stripUnknown,
       });
 
-      req[property] = validated;
+      if (property === "query" || property === "params") {
+        // Express defines query/params as getters. Modify the object in place.
+        // 1. Clear existing keys (respects stripUnknown)
+        Object.keys(req[property]).forEach((key) => delete req[property][key]);
+        // 2. Assign the validated values back into the object
+        Object.assign(req[property], validated);
+      } else {
+        // req.body can be reassigned safely
+        req[property] = validated;
+      }
+      // --- FIX ENDS HERE ---
       return next();
     } catch (error) {
       await cleanupTempUploads(req);
