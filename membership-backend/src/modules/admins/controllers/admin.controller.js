@@ -19,6 +19,17 @@ class AdminController {
     return res.status(200).json({ success: true, data: adminData });
   }
 
+  async getMe(req, res) {
+    const adminId = req.admin.id;
+
+    const adminProfile = await adminService.getMe(adminId);
+
+    return res.status(200).json({
+      success: true,
+      data: adminProfile,
+    });
+  }
+
   async logout(req, res) {
     res.clearCookie("token", {
       httpOnly: true,

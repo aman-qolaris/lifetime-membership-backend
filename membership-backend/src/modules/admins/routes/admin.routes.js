@@ -22,6 +22,12 @@ router.post(
   asyncHandler(adminController.login.bind(adminController)),
 );
 
+router.get(
+  "/me",
+  verifyAdmin,
+  asyncHandler(adminController.getMe.bind(adminController)),
+);
+
 router.post(
   "/logout",
   verifyAdmin,

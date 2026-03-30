@@ -30,6 +30,16 @@ class AdminService {
     };
   }
 
+  async getMe(adminId) {
+    const admin = await adminRepository.findAdminById(adminId);
+
+    if (!admin) {
+      throw { statusCode: 404, message: "Admin profile not found." };
+    }
+
+    return admin;
+  }
+
   // --- UPDATED: Admin edits applicant details before approval ---
   async updateApplicantDetails(applicantId, updateData) {
     if (!updateData || typeof updateData !== "object") {

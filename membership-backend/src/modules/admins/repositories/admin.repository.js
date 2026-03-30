@@ -13,6 +13,12 @@ class AdminRepository {
     return Admin.findOne({ where: { phoneNumber } });
   }
 
+  async findAdminById(id) {
+    return Admin.findByPk(id, {
+      attributes: { exclude: ["password"] },
+    });
+  }
+
   async findApplicantById(applicantId, { transaction } = {}) {
     return Applicant.findByPk(applicantId, { transaction });
   }

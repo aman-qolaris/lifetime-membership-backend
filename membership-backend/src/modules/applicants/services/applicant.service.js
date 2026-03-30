@@ -58,6 +58,26 @@ class ApplicantService {
 
   // Handles the entire workflow of submitting a new application
   async submitApplication(applicantData) {
+    const { existingMember, existingApplicant } =
+      await applicantRepository.findExistingByEmailOrMobile(
+        applicantData.email,
+        applicantData.mobileNumber,
+      );
+
+    if (existingMember) {
+      throw new AppError(
+        "A registered member with this email or mobile number already exists.",
+        400,
+      );
+    }
+
+    if (existingApplicant) {
+      throw new AppError(
+        "An application with this email or mobile number is already in progress.",
+        400,
+      );
+    }
+
     const transaction = await sequelize.transaction();
 
     try {

@@ -91,6 +91,22 @@ class ApplicantRepository {
   async findMemberById(id, transaction = null) {
     return Member.findByPk(id, { transaction });
   }
+
+  async findExistingByEmailOrMobile(email, mobileNumber) {
+    const existingMember = await Member.findOne({
+      where: {
+        [Op.or]: [{ email }, { mobileNumber }],
+      },
+    });
+
+    const existingApplicant = await Applicant.findOne({
+      where: {
+        [Op.or]: [{ email }, { mobileNumber }],
+      },
+    });
+
+    return { existingMember, existingApplicant };
+  }
 }
 
 export default new ApplicantRepository();
