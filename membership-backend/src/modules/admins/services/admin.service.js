@@ -237,6 +237,13 @@ class AdminService {
         { transaction },
       );
 
+      if (existingMember) {
+        throw {
+          statusCode: 400,
+          message: `Cannot promote: A member with this email (${applicant.email}) or mobile number already exists in the system.`,
+        };
+      }
+
       if (!existingMember) {
         await adminRepository.createMember(
           {
