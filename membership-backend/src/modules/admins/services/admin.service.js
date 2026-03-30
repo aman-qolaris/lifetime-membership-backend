@@ -40,6 +40,16 @@ class AdminService {
     return admin;
   }
 
+  async getMemberDetails(memberId) {
+    const member = await adminRepository.findMemberById(memberId);
+
+    if (!member) {
+      throw { statusCode: 404, message: "Member not found." };
+    }
+
+    return member;
+  }
+
   // --- UPDATED: Admin edits applicant details before approval ---
   async updateApplicantDetails(applicantId, updateData) {
     if (!updateData || typeof updateData !== "object") {

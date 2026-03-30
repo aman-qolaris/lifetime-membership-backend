@@ -15,17 +15,14 @@ import asyncHandler from "../../../utils/asyncHandler.js";
 
 const router = express.Router();
 
+// ==========================================
+// 1. AUTHENTICATION & PROFILE (Static Routes)
+// ==========================================
 router.post(
   "/login",
   loginLimiter,
   validate(adminLoginDto),
   asyncHandler(adminController.login.bind(adminController)),
-);
-
-router.get(
-  "/me",
-  verifyAdmin,
-  asyncHandler(adminController.getMe.bind(adminController)),
 );
 
 router.post(
@@ -34,14 +31,70 @@ router.post(
   asyncHandler(adminController.logout.bind(adminController)),
 );
 
-// Admin Settings: Get and Update Fee
+router.get(
+  "/me",
+  verifyAdmin,
+  asyncHandler(adminController.getMe.bind(adminController)),
+);
+
+// ==========================================
+// 2. SETTINGS (Static Routes)
+// ==========================================
 router.get(
   "/settings",
   verifyAdmin,
   asyncHandler(adminController.getSettings.bind(adminController)),
 );
 
-// Admin: Edit applicant text details
+router.patch(
+  "/settings/update-fee",
+  verifyAdmin,
+  validate(updateFeeDto),
+  asyncHandler(adminController.updateFee.bind(adminController)),
+);
+
+// ==========================================
+// 3. MEMBERS (Static BEFORE Dynamic Routes)
+// ==========================================
+// Static Member Routes
+router.get(
+  "/members",
+  asyncHandler(adminController.getProposers.bind(adminController)),
+);
+
+router.get(
+  "/all-members",
+  verifyAdmin,
+  asyncHandler(adminController.getAllMembersAdmin.bind(adminController)),
+);
+
+// Dynamic Member Routes (Params)
+router.get(
+  "/members/:id",
+  verifyAdmin,
+  validate(idParamsDto, { property: "params" }),
+  asyncHandler(adminController.getMemberById.bind(adminController)),
+);
+
+router.patch(
+  "/members/:id/status",
+  verifyAdmin,
+  validate(idParamsDto, { property: "params" }),
+  asyncHandler(adminController.toggleMemberStatus.bind(adminController)),
+);
+
+// ==========================================
+// 4. APPLICANTS (Static BEFORE Dynamic Routes)
+// ==========================================
+// Static Applicant Routes
+router.post(
+  "/promote",
+  verifyAdmin,
+  validate(promoteApplicantDto),
+  asyncHandler(adminController.promoteApplicant.bind(adminController)),
+);
+
+// Dynamic Applicant Routes (Params)
 router.put(
   "/applicants/:id/edit",
   verifyAdmin,
@@ -50,45 +103,12 @@ router.put(
   asyncHandler(adminController.editApplicant.bind(adminController)),
 );
 
-// Admin: Approve or Reject the application
 router.post(
   "/applicants/:id/review",
   verifyAdmin,
   validate(idParamsDto, { property: "params" }),
   validate(reviewApplicantDto),
   asyncHandler(adminController.reviewApplicant.bind(adminController)),
-);
-
-router.get(
-  "/members",
-  asyncHandler(adminController.getProposers.bind(adminController)),
-);
-// Admin: Get full list of members for management grid
-router.get(
-  "/all-members",
-  verifyAdmin,
-  asyncHandler(adminController.getAllMembersAdmin.bind(adminController)),
-);
-
-router.post(
-  "/promote",
-  verifyAdmin,
-  validate(promoteApplicantDto),
-  asyncHandler(adminController.promoteApplicant.bind(adminController)),
-);
-router.patch(
-  "/settings/update-fee",
-  verifyAdmin,
-  validate(updateFeeDto),
-  asyncHandler(adminController.updateFee.bind(adminController)),
-);
-
-// Admin: Toggle a member's active/inactive status
-router.patch(
-  "/members/:id/status",
-  verifyAdmin,
-  validate(idParamsDto, { property: "params" }),
-  asyncHandler(adminController.toggleMemberStatus.bind(adminController)),
 );
 
 export default router;

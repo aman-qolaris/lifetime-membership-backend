@@ -30,6 +30,17 @@ class AdminController {
     });
   }
 
+  async getMemberById(req, res) {
+    const { id } = req.params;
+
+    const member = await adminService.getMemberDetails(id);
+
+    return res.status(200).json({
+      success: true,
+      data: member,
+    });
+  }
+
   async logout(req, res) {
     res.clearCookie("token", {
       httpOnly: true,
