@@ -22,6 +22,12 @@ router.post(
   asyncHandler(adminController.login.bind(adminController)),
 );
 
+router.post(
+  "/logout",
+  verifyAdmin,
+  asyncHandler(adminController.logout.bind(adminController)),
+);
+
 // Admin Settings: Get and Update Fee
 router.get(
   "/settings",

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import "./config/env.js";
 
 import apiRoutes from "./routes/index.js";
@@ -13,7 +14,13 @@ export const createApp = () => {
 
   // === GLOBAL MIDDLEWARES ===
   app.use(helmet());
-  app.use(cors());
+  app.use(
+    cors({
+      origin: process.env.FRONTEND_URL,
+      credentials: true,
+    }),
+  );
+  app.use(cookieParser());
   app.use(
     express.json({
       type: ["application/json", "application/*+json", "text/plain"],

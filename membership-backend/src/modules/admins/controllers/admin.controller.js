@@ -6,7 +6,28 @@ class AdminController {
       req.body.phoneNumber,
       req.body.password,
     );
-    return res.status(200).json({ success: true, data: result });
+
+    res.cookie("token", result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict", // Protects against CSRF
+      maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds (match your JWT expiry)
+    });
+
+    const { token, ...adminData } = result;
+
+    return res.status(200).json({ success: true, data: adminData });
+  }
+
+  async logout(req, res) {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+    return res
+      .status(200)
+      .json({ success: true, message: "Logged out successfully" });
   }
 
   // NEW: Handles admin editing applicant details
