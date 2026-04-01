@@ -25,3 +25,5 @@ Thumbs.db
 
 # Temporary local file uploads
 temp_uploads/
+
+*.zip
