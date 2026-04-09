@@ -71,6 +71,14 @@ class ApplicantController {
         req.files,
       );
 
+    const io = req.app.get("io");
+    if (io) {
+      io.of("/admin").to("admins").emit("admin:applicant:status", {
+        applicantId: updatedApplicant.id,
+        status: updatedApplicant.status,
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message:

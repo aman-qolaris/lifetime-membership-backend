@@ -50,6 +50,11 @@ class ApprovalController {
           status,
           decidedBy: result.data.decidedBy,
         });
+
+      io.of("/admin").to("admins").emit("admin:applicant:status", {
+        applicantId: applicantId,
+        status: status,
+      });
     }
     return res.status(200).json(result);
   }

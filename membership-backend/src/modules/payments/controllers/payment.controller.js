@@ -32,6 +32,11 @@ class PaymentController {
             razorpayPaymentId: result.data.razorpayPaymentId,
             isPaid: true,
           });
+
+        io.of("/admin").to("admins").emit("admin:applicant:status", {
+          applicantId: applicantId,
+          status: result.data.status, // Will be 'PAYMENT_COMPLETED'
+        });
       }
     }
 
