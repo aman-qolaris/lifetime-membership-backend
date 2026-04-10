@@ -58,12 +58,13 @@ export const loginLimiter = rateLimit({
     15 * 60 * 1000,
   ),
   max: parsePositiveInt(process.env.RATE_LIMIT_LOGIN_MAX, 10),
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   store: getRedisStore("rl:login:"),
   passOnStoreError: true,
   message: {
     success: false,
-    message: "Too many login attempts, please try again later.",
+    message: "Too many failed login attempts, please try again later.",
   },
 });
