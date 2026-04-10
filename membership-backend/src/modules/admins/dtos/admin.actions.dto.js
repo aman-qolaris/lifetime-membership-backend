@@ -129,3 +129,13 @@ export const resetPasswordSchema = Joi.object({
     }),
   newPassword: passwordRule,
 });
+
+export const dateRangeQueryDto = Joi.object({
+  startDate: Joi.date().iso().optional().messages({
+    "date.format": "Start date must be a valid ISO date (YYYY-MM-DD).",
+  }),
+  endDate: Joi.date().iso().min(Joi.ref("startDate")).optional().messages({
+    "date.format": "End date must be a valid ISO date (YYYY-MM-DD).",
+    "date.min": "End date cannot be earlier than the start date.",
+  }),
+});

@@ -11,6 +11,7 @@ import {
   setTemporaryData,
   getTemporaryData,
 } from "../../../utils/cache.js";
+import { parse } from "json2csv";
 
 class AdminService {
   async login(phoneNumber, password) {
@@ -426,6 +427,50 @@ class AdminService {
       success: true,
       message: `Membership fee updated to ₹${newValue} successfully.`,
     };
+  }
+
+  async getDashboardStats(startDate, endDate) {
+    const stats = await adminRepository.getDashboardStats(startDate, endDate);
+
+    return {
+      success: true,
+      message: "Dashboard statistics fetched successfully.",
+      data: stats,
+    };
+  }
+
+  async generateMembersCSVReport(startDate, endDate) {
+    const members = await adminRepository.getMembersForExport(
+      startDate,
+      endDate,
+    );
+
+    if (!members || members.length === 0) {
+      throw {
+        statusCode: 404,
+        message: "No members found in this date range to export.",
+      };
+    }
+
+    const formattedData = members.map((m) => {
+      const member = m.toJSON();
+      return {
+        "Registration Date": new Date(member.createdAt).toLocaleDateString(
+          "en-IN",
+        ),
+        Name: member.name,
+        Email: member.email,
+        "Mobile Number": member.mobileNumber,
+        "Blood Group": member.bloodGroup || "N/A",
+        "Date of Birth": member.dateOfBirth,
+        Address: member.permanentAddress,
+        Status: member.isActive ? "Active" : "Inactive",
+      };
+    });
+
+    const csvData = parse(formattedData);
+
+    return csvData;
   }
 }
 

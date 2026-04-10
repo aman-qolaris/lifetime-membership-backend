@@ -170,6 +170,31 @@ class AdminController {
 
     return res.status(200).json(result);
   }
+
+  async getDashboardStats(req, res) {
+    const { startDate, endDate } = req.query;
+
+    const stats = await adminService.getDashboardStats(startDate, endDate);
+
+    return res.status(200).json(stats);
+  }
+
+  async downloadReport(req, res) {
+    const { startDate, endDate } = req.query;
+
+    const csvData = await adminService.generateMembersCSVReport(
+      startDate,
+      endDate,
+    );
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=members_report_${Date.now()}.csv`,
+    );
+
+    return res.status(200).send(csvData);
+  }
 }
 
 export default new AdminController();

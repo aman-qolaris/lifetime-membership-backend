@@ -5,6 +5,7 @@ import {
   FileUpload,
   Member,
   Setting,
+  Payment,
 } from "../../../database/index.js";
 import { Op } from "sequelize";
 
@@ -143,6 +144,74 @@ class AdminRepository {
 
   async findAdminByEmail(email) {
     return await Admin.findOne({ where: { email } });
+  }
+
+  // --- NEW: Dashboard Statistics Query ---
+  async getDashboardStats(startDate, endDate) {
+    const memberWhereClause = { role: "MEMBER" };
+    const paymentWhereClause = { status: "SUCCESS" };
+
+    if (startDate && endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const dateFilter = {
+        [Op.between]: [new Date(startDate), endOfDay],
+      };
+
+      memberWhereClause.createdAt = dateFilter;
+      paymentWhereClause.createdAt = dateFilter;
+    }
+
+    const newMembersCount = await Member.count({
+      where: memberWhereClause,
+    });
+
+    const totalRevenueResult = await Payment.sum("amount", {
+      where: paymentWhereClause,
+    });
+
+    const totalRevenue = totalRevenueResult || 0;
+
+    const pendingAdminReviewCount = await Applicant.count({
+      where: { status: "PENDING_ADMIN_REVIEW" },
+    });
+
+    return {
+      newMembersCount,
+      totalRevenue,
+      pendingAdminReviewCount,
+      dateRange: startDate && endDate ? { startDate, endDate } : "All Time",
+    };
+  }
+
+  async getMembersForExport(startDate, endDate) {
+    const whereClause = { role: "MEMBER" };
+
+    if (startDate && endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      whereClause.createdAt = {
+        [Op.between]: [new Date(startDate), endOfDay],
+      };
+    }
+
+    return Member.findAll({
+      where: whereClause,
+      attributes: [
+        "id",
+        "name",
+        "email",
+        "mobileNumber",
+        "dateOfBirth",
+        "bloodGroup",
+        "permanentAddress",
+        "isActive",
+        "createdAt",
+      ],
+      order: [["createdAt", "DESC"]],
+    });
   }
 }
 

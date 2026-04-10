@@ -13,6 +13,7 @@ import {
   changePasswordSchema,
   resetPasswordSchema,
   forgotPasswordSchema,
+  dateRangeQueryDto,
 } from "../dtos/admin.actions.dto.js";
 import asyncHandler from "../../../utils/asyncHandler.js";
 
@@ -40,11 +41,6 @@ router.get(
   asyncHandler(adminController.getMe.bind(adminController)),
 );
 
-// ==========================================
-// 1. AUTHENTICATION & PROFILE (Static Routes)
-// ==========================================
-
-// --- NEW PASSWORD ROUTES ---
 router.post(
   "/change-password",
   verifyAdmin,
@@ -78,6 +74,24 @@ router.patch(
   verifyAdmin,
   validate(updateFeeDto),
   asyncHandler(adminController.updateFee.bind(adminController)),
+);
+
+// ==========================================
+// DASHBOARD (Static Routes)
+// ==========================================
+router.get(
+  "/dashboard-stats",
+  verifyAdmin,
+  validate(dateRangeQueryDto, { property: "query" }),
+  asyncHandler(adminController.getDashboardStats.bind(adminController)),
+);
+
+// GET /api/v1/admins/dashboard-stats/export
+router.get(
+  "/dashboard-stats/export",
+  verifyAdmin,
+  validate(dateRangeQueryDto, { property: "query" }),
+  asyncHandler(adminController.downloadReport.bind(adminController)),
 );
 
 // ==========================================
