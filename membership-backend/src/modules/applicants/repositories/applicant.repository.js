@@ -43,12 +43,23 @@ class ApplicantRepository {
     );
   }
 
-  // Fetches all applicants for the Admin dashboard
-  async findAll(filters = {}) {
-    return await Applicant.findAll({
-      where: filters,
+  async findAll(filters = {}, searchTerm = "", limit = 15, offset = 0) {
+    const whereClause = { ...filters };
+
+    if (searchTerm) {
+      whereClause[Op.or] = [
+        { fullName: { [Op.like]: `%${searchTerm}%` } },
+        { email: { [Op.like]: `%${searchTerm}%` } },
+        { mobileNumber: { [Op.like]: `%${searchTerm}%` } },
+      ];
+    }
+
+    return await Applicant.findAndCountAll({
+      where: whereClause,
       order: [["createdAt", "DESC"]],
       include: [{ model: Member, as: "proposer", attributes: ["name"] }],
+      limit,
+      offset,
     });
   }
 

@@ -50,7 +50,7 @@ router.put(
 router.get(
   "/",
   verifyAdmin,
-  asyncHandler(applicantController.getApplicants.bind(applicantController)),
+  asyncHandler(applicantController.getAllApplicants.bind(applicantController)),
 );
 router.get(
   "/:id",

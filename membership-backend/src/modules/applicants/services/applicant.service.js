@@ -234,8 +234,23 @@ class ApplicantService {
     return applicant;
   }
 
-  async getAllApplicants(filters = {}) {
-    return await applicantRepository.findAll(filters);
+  async getAllApplicants(filters = {}, searchTerm = "", page = 1, limit = 15) {
+    const offset = (page - 1) * limit;
+
+    const { rows, count } = await applicantRepository.findAll(
+      filters,
+      searchTerm,
+      limit,
+      offset,
+    );
+
+    return {
+      applicants: rows,
+      total: count,
+      currentPage: page,
+      totalPages: Math.ceil(count / limit),
+      hasMore: page * limit < count,
+    };
   }
 }
 

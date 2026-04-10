@@ -63,8 +63,19 @@ class AdminRepository {
     });
   }
 
-  async findAllMembersForAdmin() {
-    return Member.findAll({
+  async findAllMembersForAdmin(searchTerm = "", limit = 15, offset = 0) {
+    const whereClause = {};
+
+    if (searchTerm) {
+      whereClause[Op.or] = [
+        { name: { [Op.like]: `%${searchTerm}%` } },
+        { email: { [Op.like]: `%${searchTerm}%` } },
+        { mobileNumber: { [Op.like]: `%${searchTerm}%` } },
+      ];
+    }
+
+    return Member.findAndCountAll({
+      where: whereClause,
       attributes: [
         "id",
         "name",
@@ -74,7 +85,9 @@ class AdminRepository {
         "isActive",
         "createdAt",
       ],
-      order: [["name", "ASC"]],
+      order: [["createdAt", "DESC"]],
+      limit,
+      offset,
     });
   }
 

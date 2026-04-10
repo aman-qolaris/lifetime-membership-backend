@@ -287,8 +287,22 @@ class AdminService {
     return adminRepository.findProposers(searchTerm);
   }
 
-  async getAllMembersForAdmin() {
-    return adminRepository.findAllMembersForAdmin();
+  async getAllMembersForAdmin(searchTerm = "", page = 1, limit = 15) {
+    const offset = (page - 1) * limit;
+
+    const { rows, count } = await adminRepository.findAllMembersForAdmin(
+      searchTerm,
+      limit,
+      offset,
+    );
+
+    return {
+      members: rows,
+      total: count,
+      currentPage: page,
+      totalPages: Math.ceil(count / limit),
+      hasMore: page * limit < count,
+    };
   }
 
   async toggleMemberStatus(memberId) {

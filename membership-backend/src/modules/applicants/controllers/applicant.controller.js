@@ -91,12 +91,23 @@ class ApplicantController {
   }
 
   // Handles the GET /api/applicants endpoint (For Admin Dashboard)
-  async getApplicants(req, res) {
-    const applicants = await applicantService.getAllApplicants();
+  async getAllApplicants(req, res) {
+    const filters = req.query.status ? { status: req.query.status } : {};
+    const searchTerm = req.query.search || "";
+
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 15;
+
+    const result = await applicantService.getAllApplicants(
+      filters,
+      searchTerm,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
-      data: applicants,
+      data: result,
     });
   }
 

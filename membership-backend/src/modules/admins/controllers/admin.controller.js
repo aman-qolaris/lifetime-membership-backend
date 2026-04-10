@@ -102,10 +102,17 @@ class AdminController {
     return res.status(200).json({ success: true, data: members });
   }
 
-  // Handles GET request for the Admin to see all members (Active & Inactive)
   async getAllMembersAdmin(req, res) {
-    const members = await adminService.getAllMembersForAdmin();
-    return res.status(200).json({ success: true, data: members });
+    const searchTerm = req.query.search || "";
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 15;
+
+    const result = await adminService.getAllMembersForAdmin(
+      searchTerm,
+      page,
+      limit,
+    );
+    return res.status(200).json({ success: true, data: result });
   }
 
   // Handles PATCH request to toggle member status
