@@ -169,6 +169,37 @@ class EmailService {
     };
     return await this.transporter.sendMail(mailOptions);
   }
+
+  async sendAdminPasswordResetOTP(adminEmail, otp) {
+    const mailOptions = {
+      from: `"Maharashtra Mandal Raipur" <${process.env.SMTP_USER}>`,
+      to: adminEmail,
+      subject: "Admin Password Reset OTP - Action Required",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px;">
+          <h2 style="color: #003366; text-align: center;">Password Reset Request</h2>
+          <p>Hello Admin,</p>
+          <p>We received a request to reset the password for your administrator account. Please use the following 6-digit OTP to securely reset your password:</p>
+          <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; color: #007bff; letter-spacing: 8px; padding: 10px 20px; border: 2px dashed #007bff; border-radius: 5px; display: inline-block;">${otp}</span>
+          </div>
+          <p style="color: #d9534f; font-size: 14px; text-align: center;"><strong>Note:</strong> This OTP is strictly valid for <strong>10 minutes</strong>.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #777;">If you did not request a password reset, please ignore this email immediately. Your account remains secure.</p>
+        </div>
+      `,
+    };
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Admin OTP email queued for ${adminEmail}`);
+    } catch (error) {
+      console.error("❌ Error sending admin OTP email:", error);
+      throw {
+        statusCode: 500,
+        message: "Failed to send OTP email. Please try again later.",
+      };
+    }
+  }
 }
 
 export default new EmailService();

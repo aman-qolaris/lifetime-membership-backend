@@ -4,7 +4,13 @@ import crypto from "crypto";
 import emailService from "../../common/services/email.service.js";
 import { sequelize } from "../../../database/index.js";
 import adminRepository from "../repositories/admin.repository.js";
-import { cacheDel, cacheGetOrSet, cacheKeys } from "../../../utils/cache.js";
+import {
+  cacheDel,
+  cacheGetOrSet,
+  cacheKeys,
+  setTemporaryData,
+  getTemporaryData,
+} from "../../../utils/cache.js";
 
 class AdminService {
   async login(phoneNumber, password) {
@@ -38,6 +44,85 @@ class AdminService {
     }
 
     return admin;
+  }
+
+  async changePassword(adminId, currentPassword, newPassword) {
+    const admin = await adminRepository.findAdminById(adminId);
+    if (!admin) {
+      throw { statusCode: 404, message: "Admin not found." };
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, admin.password);
+    if (!isMatch) {
+      throw { statusCode: 401, message: "Incorrect current password." };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    admin.password = hashedPassword;
+    await admin.save();
+
+    return { success: true, message: "Password updated successfully." };
+  }
+
+  async forgotPassword(email) {
+    let admin;
+    if (adminRepository.findAdminByEmail) {
+      admin = await adminRepository.findAdminByEmail(email);
+    } else {
+      const AdminModel = (await import("../models/admin.model.js")).default;
+      admin = await AdminModel.findOne({ where: { email } });
+    }
+
+    if (!admin) {
+      return {
+        success: true,
+        message: "If that email exists, an OTP has been sent.",
+      };
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const cacheKey = `admin_pwd_reset_${email}`;
+
+    await setTemporaryData(cacheKey, otp, 600);
+
+    await emailService.sendAdminPasswordResetOTP(email, otp);
+
+    return {
+      success: true,
+      message: "If that email exists, an OTP has been sent.",
+    };
+  }
+
+  async resetPassword(email, otp, newPassword) {
+    const cacheKey = `admin_pwd_reset_${email}`;
+    const cachedOtp = await getTemporaryData(cacheKey);
+
+    if (!cachedOtp || cachedOtp !== otp) {
+      throw { statusCode: 400, message: "Invalid or expired OTP." };
+    }
+
+    let admin;
+    if (adminRepository.findAdminByEmail) {
+      admin = await adminRepository.findAdminByEmail(email);
+    } else {
+      const AdminModel = (await import("../models/admin.model.js")).default;
+      admin = await AdminModel.findOne({ where: { email } });
+    }
+
+    if (!admin) {
+      throw { statusCode: 404, message: "Admin account not found." };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    admin.password = hashedPassword;
+    await admin.save();
+
+    cacheDel(cacheKey);
+
+    return {
+      success: true,
+      message: "Password has been reset successfully. You can now log in.",
+    };
   }
 
   async getMemberDetails(memberId) {

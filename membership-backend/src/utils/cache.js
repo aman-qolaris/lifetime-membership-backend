@@ -86,3 +86,43 @@ export const cacheDel = (keys) => {
 
   cache.del(deleteKeys);
 };
+
+export const setTemporaryData = async (key, value, ttlSeconds = 600) => {
+  const redis = getRedisClient();
+  const redisKey = prefixKey(key);
+
+  if (redis) {
+    try {
+      if (redis.status !== "ready") {
+        await redis.connect();
+      }
+      await redis.set(redisKey, JSON.stringify(value), "EX", ttlSeconds);
+      return;
+    } catch {
+      console.warn("Redis temporary set failed, falling back to local cache.");
+    }
+  }
+
+  cache.set(key, value, ttlSeconds);
+};
+
+export const getTemporaryData = async (key) => {
+  const redis = getRedisClient();
+  const redisKey = prefixKey(key);
+
+  if (redis) {
+    try {
+      if (redis.status !== "ready") {
+        await redis.connect();
+      }
+      const cached = await redis.get(redisKey);
+      if (cached !== null) return JSON.parse(cached);
+      return null;
+    } catch {
+      console.warn("Redis temporary set failed, falling back to local cache.");
+    }
+  }
+
+  const cached = cache.get(key);
+  return cached === undefined ? null : cached;
+};

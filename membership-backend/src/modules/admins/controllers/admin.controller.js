@@ -134,6 +134,35 @@ class AdminController {
     const result = await adminService.updateMembershipFee(amount);
     return res.status(200).json(result);
   }
+
+  async changePassword(req, res) {
+    const adminId = req.admin.id; // Comes from verifyAdmin middleware
+    const { currentPassword, newPassword } = req.body;
+
+    const result = await adminService.changePassword(
+      adminId,
+      currentPassword,
+      newPassword,
+    );
+
+    return res.status(200).json(result);
+  }
+
+  async forgotPassword(req, res) {
+    const { email } = req.body;
+
+    const result = await adminService.forgotPassword(email);
+
+    return res.status(200).json(result);
+  }
+
+  async resetPassword(req, res) {
+    const { email, otp, newPassword } = req.body;
+
+    const result = await adminService.resetPassword(email, otp, newPassword);
+
+    return res.status(200).json(result);
+  }
 }
 
 export default new AdminController();

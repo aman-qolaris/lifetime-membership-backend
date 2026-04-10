@@ -127,6 +127,10 @@ class AdminRepository {
   async saveSetting(setting, { transaction } = {}) {
     return setting.save({ transaction });
   }
+
+  async findAdminByEmail(email) {
+    return await Admin.findOne({ where: { email } });
+  }
 }
 
 export default new AdminRepository();

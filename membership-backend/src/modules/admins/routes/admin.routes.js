@@ -10,6 +10,9 @@ import {
   promoteApplicantDto,
   reviewApplicantDto,
   updateFeeDto,
+  changePasswordSchema,
+  resetPasswordSchema,
+  forgotPasswordSchema,
 } from "../dtos/admin.actions.dto.js";
 import asyncHandler from "../../../utils/asyncHandler.js";
 
@@ -35,6 +38,30 @@ router.get(
   "/me",
   verifyAdmin,
   asyncHandler(adminController.getMe.bind(adminController)),
+);
+
+// ==========================================
+// 1. AUTHENTICATION & PROFILE (Static Routes)
+// ==========================================
+
+// --- NEW PASSWORD ROUTES ---
+router.post(
+  "/change-password",
+  verifyAdmin,
+  validate(changePasswordSchema),
+  asyncHandler(adminController.changePassword.bind(adminController)),
+);
+
+router.post(
+  "/forgot-password",
+  validate(forgotPasswordSchema),
+  asyncHandler(adminController.forgotPassword.bind(adminController)),
+);
+
+router.post(
+  "/reset-password",
+  validate(resetPasswordSchema),
+  asyncHandler(adminController.resetPassword.bind(adminController)),
 );
 
 // ==========================================

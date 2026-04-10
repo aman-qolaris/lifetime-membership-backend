@@ -21,8 +21,15 @@ const seedDatabase = async () => {
     };
 
     // 1. Seed Admin
+    const adminEmail = process.env.SEED_ADMIN_EMAIL;
     const adminPhone = process.env.SEED_ADMIN_PHONE_NUMBER;
     const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+    if (!adminEmail) {
+      throw new Error(
+        "Missing SEED_ADMIN_EMAIL. Refusing to seed a default admin without an explicit email.",
+      );
+    }
 
     if (!adminPassword) {
       throw new Error(
@@ -42,10 +49,12 @@ const seedDatabase = async () => {
     if (!existingAdmin) {
       const hashedPassword = await bcrypt.hash(adminPassword, 10);
       await Admin.create({
+        email: adminEmail,
         phoneNumber: adminPhone,
         password: hashedPassword,
       });
       console.log("✅ Default Admin created.", {
+        email: adminEmail,
         phoneNumber: adminPhone,
       });
     }
