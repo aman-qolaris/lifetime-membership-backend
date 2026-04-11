@@ -12,6 +12,7 @@ import {
   getTemporaryData,
 } from "../../../utils/cache.js";
 import { parse } from "json2csv";
+import AppError from "../../../utils/AppError.js";
 
 class AdminService {
   async login(phoneNumber, password) {
@@ -48,14 +49,14 @@ class AdminService {
   }
 
   async changePassword(adminId, currentPassword, newPassword) {
-    const admin = await adminRepository.findAdminById(adminId);
+    const admin = await adminRepository.findAdminWithPassword(adminId);
     if (!admin) {
-      throw { statusCode: 404, message: "Admin not found." };
+      throw new AppError("Admin not found.", 404);
     }
 
     const isMatch = await bcrypt.compare(currentPassword, admin.password);
     if (!isMatch) {
-      throw { statusCode: 401, message: "Incorrect current password." };
+      throw new AppError("Incorrect current password.", 401);
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

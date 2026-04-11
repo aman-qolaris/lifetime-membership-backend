@@ -14,6 +14,14 @@ class AdminRepository {
     return Admin.findOne({ where: { phoneNumber } });
   }
 
+  async findAdminWithPassword(adminId, options = {}) {
+    return Admin.findOne({
+      where: { id: adminId },
+      attributes: ["id", "password"],
+      ...options,
+    });
+  }
+
   async findAdminById(id) {
     return Admin.findByPk(id, {
       attributes: { exclude: ["password"] },
