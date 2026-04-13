@@ -157,7 +157,7 @@ class AdminRepository {
   // --- NEW: Dashboard Statistics Query ---
   async getDashboardStats(startDate, endDate) {
     const memberWhereClause = { role: "MEMBER" };
-    const paymentWhereClause = { status: "SUCCESS" };
+    const paymentWhereClause = { status: "COMPLETED" };
 
     if (startDate && endDate) {
       const endOfDay = new Date(endDate);
