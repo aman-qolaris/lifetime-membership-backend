@@ -9,6 +9,7 @@ import { createSocketServer } from "./socket.js";
 
 // === SERVER INITIALIZATION ===
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "127.0.0.1";
 
 const startServer = async () => {
   try {
@@ -20,7 +21,7 @@ const startServer = async () => {
     const io = await createSocketServer(httpServer);
     app.set("io", io);
 
-    httpServer.listen(PORT, () => {
+    httpServer.listen(PORT, HOST, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📡 API Base URL: http://localhost:${PORT}/api/v1`);
     });
