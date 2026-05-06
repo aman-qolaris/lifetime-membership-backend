@@ -1,0 +1,6 @@
+projectKey=Lifetime-membership-backend
+serverUrl=https://sonarqube.qolarisdata.com
+serverVersion=26.2.0.119303
+dashboardUrl=https://sonarqube.qolarisdata.com/dashboard?id=Lifetime-membership-backend
+ceTaskId=5333abaf-5d27-4def-9421-d9cd6594896a
+ceTaskUrl=https://sonarqube.qolarisdata.com/api/ce/task?id=5333abaf-5d27-4def-9421-d9cd6594896a

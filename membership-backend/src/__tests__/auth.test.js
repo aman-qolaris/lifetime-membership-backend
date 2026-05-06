@@ -13,7 +13,7 @@ describe("Auth & Admin access", () => {
 
   test("POST /api/v1/admins/login rejects wrong password", async () => {
     const passwordHash = await bcrypt.hash("Correct@123", 10);
-    await Admin.create({ phoneNumber: "9999999999", password: passwordHash });
+    await Admin.create({ phoneNumber: "9999999999", email: "admin_test@example.com", password: passwordHash });
 
     const res = await request(app)
       .post("/api/v1/admins/login")
@@ -37,9 +37,9 @@ describe("Auth & Admin access", () => {
       { expiresIn: "1h" },
     );
 
-    const res = await request(app)
-      .get("/api/v1/admins/settings")
-      .set("Authorization", `Bearer ${token}`);
+const res = await request(app)
+  .get("/api/v1/admins/settings")
+  .set("Cookie", [`token=${token}`]);
 
     expect(res.status).toBe(403);
     expect(res.body?.success).toBe(false);
