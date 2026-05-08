@@ -1,5 +1,5 @@
 import app from "./app.js";
-import http from "http";
+import http from "node:http";
 
 // Import Database & infra initializers
 import { testDbConnection } from "./config/database.js";

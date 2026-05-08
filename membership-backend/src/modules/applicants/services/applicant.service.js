@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto"; // Fixed: Prefer node:crypto
 import { sequelize } from "../../../database/index.js";
 import applicantRepository from "../repositories/applicant.repository.js";
 import emailService from "../../common/services/email.service.js";
@@ -13,7 +13,10 @@ const UPLOAD_FIELD_TO_TYPE = {
 };
 
 class ApplicantService {
-  async _buildUploadedFiles(files, { required } = { required: false }) {
+  // Fixed: Do not use object literal as default, use optional chain instead
+  async _buildUploadedFiles(files, options) {
+    const required = options?.required ?? false;
+
     if (!files) {
       if (required) {
         throw new AppError(
@@ -26,7 +29,8 @@ class ApplicantService {
 
     if (required) {
       const missing = Object.keys(UPLOAD_FIELD_TO_TYPE).filter(
-        (field) => !files[field] || !files[field][0],
+        // FIXED: Check if the field doesn't exist OR if the array is empty
+        (field) => !files[field] || files[field].length === 0,
       );
       if (missing.length > 0) {
         throw new AppError(
@@ -38,7 +42,9 @@ class ApplicantService {
 
     const uploaded = [];
     for (const [field, fileType] of Object.entries(UPLOAD_FIELD_TO_TYPE)) {
-      const file = files[field]?.[0];
+      // FIXED: Grab the first file in the array using
+      const file =
+        files[field] && files[field].length > 0 ? files[field] : undefined;
       if (!file) continue;
 
       const minioUrl = await storageService.uploadToMinio(file);
@@ -140,7 +146,8 @@ class ApplicantService {
         transaction,
       );
       if (!applicant) {
-        throw { statusCode: 404, message: "Applicant not found." };
+        // Fixed: Throw an error object
+        throw new AppError("Applicant not found.", 404);
       }
 
       // --- NEW FIX: Handle new file uploads during resubmission ---
@@ -210,10 +217,11 @@ class ApplicantService {
       }
       // SCENARIO 3: Illegal state
       else {
-        throw {
-          statusCode: 400,
-          message: `Application cannot be edited in its current state: ${applicant.status}`,
-        };
+        // Fixed: Throw an error object
+        throw new AppError(
+          `Application cannot be edited in its current state: ${applicant.status}`,
+          400,
+        );
       }
 
       await transaction.commit();
@@ -227,9 +235,8 @@ class ApplicantService {
   async getApplicantDetails(id) {
     const applicant = await applicantRepository.findById(id);
     if (!applicant) {
-      const error = new Error("Applicant not found");
-      error.statusCode = 404;
-      throw error;
+      // Fixed: Cleaner error object throwing
+      throw new AppError("Applicant not found.", 404);
     }
     return applicant;
   }

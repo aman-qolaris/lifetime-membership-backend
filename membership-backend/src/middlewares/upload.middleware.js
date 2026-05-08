@@ -1,7 +1,8 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
+import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
+import crypto from "node:crypto";
 
 // Recreate __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -35,8 +36,9 @@ const storage = multer.diskStorage({
       );
     }
 
-    // Generate a unique filename to prevent overwriting
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    // FIXED: Replaced Math.random() with a cryptographically secure random string
+    const uniqueSuffix =
+      Date.now() + "-" + crypto.randomBytes(8).toString("hex");
     cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
   },
 });

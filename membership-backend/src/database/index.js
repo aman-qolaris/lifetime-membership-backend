@@ -1,3 +1,4 @@
+export { sequelize } from "../config/database.js";
 import { sequelize } from "../config/database.js";
 
 // Import Models
@@ -57,7 +58,6 @@ const syncDatabase = async () => {
 };
 
 export {
-  sequelize,
   syncDatabase,
   Admin,
   Member,

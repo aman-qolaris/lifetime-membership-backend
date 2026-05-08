@@ -95,8 +95,9 @@ class ApplicantController {
     const filters = req.query.status ? { status: req.query.status } : {};
     const searchTerm = req.query.search || "";
 
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 15;
+    // Fixed: Prefer Number.parseInt over parseInt
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Number.parseInt(req.query.limit, 10) || 15;
 
     const result = await applicantService.getAllApplicants(
       filters,
@@ -112,6 +113,7 @@ class ApplicantController {
   }
 
   // Handles the GET /api/applicants/:id endpoint
+
   async getApplicantById(req, res) {
     const { id } = req.params;
     const applicant = await applicantService.getApplicantDetails(id);

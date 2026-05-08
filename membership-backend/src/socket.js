@@ -5,12 +5,12 @@ import jwt from "jsonwebtoken";
 
 const getCorsOrigins = () => {
   const raw = process.env.CORS_ORIGIN;
-  if (!raw) return "*";
+  if (!raw) return ["*"];
   const parts = raw
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  return parts.length > 0 ? parts : "*";
+  return parts.length > 0 ? parts : ["*"];
 };
 
 const authenticateJwt = (token) => {

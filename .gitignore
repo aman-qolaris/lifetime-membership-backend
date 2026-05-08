@@ -10,6 +10,8 @@ node_modules/
 # build files
 dist/
 build/
+coverage/
+.sonar/
 
 # logs
 logs

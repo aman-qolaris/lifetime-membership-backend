@@ -1,17 +1,19 @@
 import { minioClient, MINIO_BUCKET_NAME } from "../../../config/minio.js";
-import fs from "fs";
+import fs from "node:fs";
+import crypto from "node:crypto";
 import sharp from "sharp";
 
 const normalizeBaseName = (name) => {
   const base = String(name || "")
     .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9._-]/g, "");
+    .replaceAll(/\s+/g, "-")
+    .replaceAll(/[^a-zA-Z0-9._-]/g, "");
 
   return base || "upload";
 };
 
-const randomSuffix = () => `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+const randomSuffix = () =>
+  `${Date.now()}-${crypto.randomBytes(8).toString("hex")}`;
 
 const isImageMime = (mime) =>
   mime === "image/jpeg" || mime === "image/jpg" || mime === "image/png";

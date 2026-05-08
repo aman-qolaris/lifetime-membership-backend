@@ -4,7 +4,8 @@ import Joi from "joi";
 const maxDob = new Date();
 maxDob.setFullYear(maxDob.getFullYear() - 18);
 
-const createApplicantDto = Joi.object({
+// 1. Define the base schema without the renames
+const baseSchema = Joi.object({
   fullName: Joi.string().trim().min(2).max(100).required(),
 
   // NEW: Gender field
@@ -31,7 +32,8 @@ const createApplicantDto = Joi.object({
   }),
 
   mobileNumber: Joi.string()
-    .pattern(/^[6-9][0-9]{9}$/)
+    // Fixed: Use \d instead of [0-9]
+    .pattern(/^[6-9]\d{9}$/)
     .required()
     .messages({
       "string.pattern.base":
@@ -60,51 +62,29 @@ const createApplicantDto = Joi.object({
   membershipType: Joi.string().valid("LIFETIME").required(),
 
   proposerMemberId: Joi.string().uuid({ version: "uuidv4" }).required(),
-})
-  .rename("full_name", "fullName", { override: true, ignoreUndefined: true })
-  .rename("father_or_husband_name", "fatherOrHusbandName", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("permanent_address", "permanentAddress", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("current_address", "currentAddress", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("is_from_raipur", "isFromRaipur", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("mobile_number", "mobileNumber", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("office_address", "officeAddress", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("date_of_birth", "dateOfBirth", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("marriage_date", "marriageDate", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("blood_group", "bloodGroup", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("membership_type", "membershipType", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("proposer_member_id", "proposerMemberId", {
-    override: true,
-    ignoreUndefined: true,
-  });
+});
+
+// 2. Define your snake_case to camelCase mappings in a clean array
+const renameMappings = [
+  ["full_name", "fullName"],
+  ["father_or_husband_name", "fatherOrHusbandName"],
+  ["permanent_address", "permanentAddress"],
+  ["current_address", "currentAddress"],
+  ["is_from_raipur", "isFromRaipur"],
+  ["mobile_number", "mobileNumber"],
+  ["office_address", "officeAddress"],
+  ["date_of_birth", "dateOfBirth"],
+  ["marriage_date", "marriageDate"],
+  ["blood_group", "bloodGroup"],
+  ["membership_type", "membershipType"],
+  ["proposer_member_id", "proposerMemberId"],
+];
+
+// 3. Programmatically apply the renames to avoid code duplication
+const createApplicantDto = renameMappings.reduce(
+  (schema, [oldKey, newKey]) =>
+    schema.rename(oldKey, newKey, { override: true, ignoreUndefined: true }),
+  baseSchema,
+);
 
 export default createApplicantDto;

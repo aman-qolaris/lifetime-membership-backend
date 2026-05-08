@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import emailService from "../../common/services/email.service.js";
 import { sequelize } from "../../../database/index.js";
 import adminRepository from "../repositories/admin.repository.js";
@@ -18,12 +18,12 @@ class AdminService {
   async login(phoneNumber, password) {
     const admin = await adminRepository.findAdminByPhone(phoneNumber);
     if (!admin) {
-      throw { statusCode: 401, message: "Invalid phone number or password." };
+      throw new AppError("Invalid phone number or password.", 401);
     }
 
     const isPasswordValid = await bcrypt.compare(password, admin.password);
     if (!isPasswordValid) {
-      throw { statusCode: 401, message: "Invalid phone number or password." };
+      throw new AppError("Invalid phone number or password.", 401);
     }
 
     const token = jwt.sign(
@@ -42,7 +42,7 @@ class AdminService {
     const admin = await adminRepository.findAdminById(adminId);
 
     if (!admin) {
-      throw { statusCode: 404, message: "Admin profile not found." };
+      throw new AppError("Admin profile not found.", 404);
     }
 
     return admin;
@@ -100,7 +100,7 @@ class AdminService {
     const cachedOtp = await getTemporaryData(cacheKey);
 
     if (!cachedOtp || cachedOtp !== otp) {
-      throw { statusCode: 400, message: "Invalid or expired OTP." };
+      throw new AppError("Invalid or expired OTP.", 400);
     }
 
     let admin;
@@ -112,7 +112,7 @@ class AdminService {
     }
 
     if (!admin) {
-      throw { statusCode: 404, message: "Admin account not found." };
+      throw new AppError("Admin account not found.", 404);
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -131,28 +131,25 @@ class AdminService {
     const member = await adminRepository.findMemberById(memberId);
 
     if (!member) {
-      throw { statusCode: 404, message: "Member not found." };
+      throw new AppError("Member not found.", 404);
     }
 
     return member;
   }
 
-  // --- UPDATED: Admin edits applicant details before approval ---
   async updateApplicantDetails(applicantId, updateData) {
     if (!updateData || typeof updateData !== "object") {
-      throw {
-        statusCode: 400,
-        message:
-          "Invalid request body. Send JSON with Content-Type: application/json.",
-      };
+      throw new AppError(
+        "Invalid request body. Send JSON with Content-Type: application/json.",
+        400,
+      );
     }
 
     const applicant = await adminRepository.findApplicantById(applicantId);
     if (!applicant) {
-      throw { statusCode: 404, message: "Applicant not found." };
+      throw new AppError("Applicant not found.", 404);
     }
 
-    // 1. Define the exact fields an admin is allowed to modify (Security Best Practice)
     const allowedFields = [
       "fullName",
       "gender",
@@ -175,32 +172,26 @@ class AdminService {
 
     const sanitizedUpdateData = {};
 
-    // 2. Safely extract only the permitted camelCase fields provided in the request
     for (const field of allowedFields) {
       if (updateData[field] !== undefined) {
         sanitizedUpdateData[field] = updateData[field];
       }
     }
 
-    // 3. Optional Fallback: If your frontend still sends some snake_case keys, map them manually here
     if (updateData.full_name)
       sanitizedUpdateData.fullName = updateData.full_name;
     if (updateData.phone_number)
       sanitizedUpdateData.mobileNumber = updateData.phone_number;
 
-    // 4. Ensure we actually have data to update before hitting the database
     if (Object.keys(sanitizedUpdateData).length === 0) {
-      throw { statusCode: 400, message: "No valid editable fields provided." };
+      throw new AppError("No valid editable fields provided.", 400);
     }
 
-    // 5. Update the record using the safely mapped data
     await adminRepository.updateApplicant(applicant, sanitizedUpdateData);
 
-    // 6. Re-fetch and return the fully populated object
     return adminRepository.findApplicantPopulated(applicantId);
   }
 
-  // --- NEW: Admin Approves or Rejects the application ---
   async processAdminReview(applicantId, action) {
     const transaction = await sequelize.transaction();
 
@@ -209,14 +200,14 @@ class AdminService {
         transaction,
       });
       if (!applicant) {
-        throw { statusCode: 404, message: "Applicant not found." };
+        throw new AppError("Applicant not found.", 404);
       }
 
       if (applicant.status !== "PENDING_ADMIN_REVIEW") {
-        throw {
-          statusCode: 400,
-          message: `Cannot review. Application is currently: ${applicant.status}`,
-        };
+        throw new AppError(
+          `Cannot review. Application is currently: ${applicant.status}`,
+          400,
+        );
       }
 
       if (action === "REJECT") {
@@ -225,7 +216,6 @@ class AdminService {
 
         const editUrl = `${process.env.FRONTEND_URL}/edit-application/${applicant.id}`;
 
-        // We will create this email method in the next step!
         await emailService.sendAdminRejectionEmail(
           applicant.email,
           applicant.fullName,
@@ -244,7 +234,6 @@ class AdminService {
         applicant.status = "PENDING_PRESIDENT_APPROVAL";
         await adminRepository.saveApplicant(applicant, { transaction });
 
-        // Generate the token for the President
         const newRawToken = crypto.randomBytes(32).toString("hex");
         await adminRepository.createApprovalToken(
           {
@@ -255,7 +244,6 @@ class AdminService {
           { transaction },
         );
 
-        // Fetch President's email and send the link
         const president = await adminRepository.findPresident({ transaction });
 
         if (president) {
@@ -274,17 +262,13 @@ class AdminService {
         };
       }
 
-      throw {
-        statusCode: 400,
-        message: "Invalid action. Use APPROVE or REJECT.",
-      };
+      throw new AppError("Invalid action. Use APPROVE or REJECT.", 400);
     } catch (error) {
       await transaction.rollback();
-      throw error;
+      throw error; // Will be caught by global errorHandler or asyncHandler
     }
   }
 
-  // ... (All other existing methods remain unchanged)
   async getAllProposers(searchTerm = "") {
     return adminRepository.findProposers(searchTerm);
   }
@@ -309,9 +293,9 @@ class AdminService {
 
   async toggleMemberStatus(memberId) {
     const member = await adminRepository.findMemberById(memberId);
-    if (!member) throw { statusCode: 404, message: "Member not found." };
+    if (!member) throw new AppError("Member not found.", 404);
     if (member.role === "PRESIDENT")
-      throw { statusCode: 400, message: "Cannot change President status." };
+      throw new AppError("Cannot change President status.", 400);
 
     member.isActive = !member.isActive;
     await adminRepository.saveMember(member);
@@ -330,13 +314,12 @@ class AdminService {
           transaction,
         },
       );
-      if (!applicant)
-        throw { statusCode: 404, message: "Applicant not found." };
+      if (!applicant) throw new AppError("Applicant not found.", 404);
       if (applicant.status !== "PAYMENT_COMPLETED")
-        throw {
-          statusCode: 400,
-          message: `Applicant cannot be promoted. Current status is ${applicant.status}. Payment must be completed first.`,
-        };
+        throw new AppError(
+          `Applicant cannot be promoted. Current status is ${applicant.status}. Payment must be completed first.`,
+          400,
+        );
 
       const existingReg =
         await adminRepository.findApplicantByRegistrationNumber(
@@ -344,10 +327,10 @@ class AdminService {
           { transaction },
         );
       if (existingReg)
-        throw {
-          statusCode: 400,
-          message: "This Registration Number is already assigned.",
-        };
+        throw new AppError(
+          "This Registration Number is already assigned.",
+          400,
+        );
 
       applicant.registrationNumber = registrationNumber;
       applicant.status = "MEMBER";
@@ -359,10 +342,10 @@ class AdminService {
       );
 
       if (existingMember) {
-        throw {
-          statusCode: 400,
-          message: `Cannot promote: A member with this email (${applicant.email}) or mobile number already exists in the system.`,
-        };
+        throw new AppError(
+          `Cannot promote: A member with this email (${applicant.email}) or mobile number already exists in the system.`,
+          400,
+        );
       }
 
       if (!existingMember) {
@@ -406,20 +389,25 @@ class AdminService {
   }
 
   async updateMembershipFee(newValue) {
-    if (!newValue || isNaN(newValue) || newValue <= 0)
-      throw { statusCode: 400, message: "Invalid fee amount." };
+    const parsedValue = Number(newValue);
+    // Fixed: Prefer Number.isNaN over isNaN
+    if (!parsedValue || Number.isNaN(parsedValue) || parsedValue <= 0) {
+      throw new AppError("Invalid fee amount.", 400);
+    }
 
     const setting = await adminRepository.findSettingByKey(
       "LIFETIME_MEMBERSHIP_FEE",
     );
-    if (!setting) {
+
+    // Fixed: Removed unexpected negated condition by placing true condition first
+    if (setting) {
+      setting.value = newValue.toString();
+      await adminRepository.saveSetting(setting);
+    } else {
       await adminRepository.createSetting({
         key: "LIFETIME_MEMBERSHIP_FEE",
         value: newValue.toString(),
       });
-    } else {
-      setting.value = newValue.toString();
-      await adminRepository.saveSetting(setting);
     }
 
     cacheDel(cacheKeys.settingsAll);
@@ -447,10 +435,7 @@ class AdminService {
     );
 
     if (!members || members.length === 0) {
-      throw {
-        statusCode: 404,
-        message: "No members found in this date range to export.",
-      };
+      throw new AppError("No members found in this date range to export.", 404);
     }
 
     const formattedData = members.map((m) => {

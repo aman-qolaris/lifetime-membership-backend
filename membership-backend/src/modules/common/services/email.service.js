@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import AppError from "../../../utils/AppError.js"; // Added AppError import
 
 class EmailService {
   constructor() {
@@ -194,10 +195,11 @@ class EmailService {
       console.log(`✅ Admin OTP email queued for ${adminEmail}`);
     } catch (error) {
       console.error("❌ Error sending admin OTP email:", error);
-      throw {
-        statusCode: 500,
-        message: "Failed to send OTP email. Please try again later.",
-      };
+      // Fixed: Throwing proper Error instance
+      throw new AppError(
+        "Failed to send OTP email. Please try again later.",
+        500,
+      );
     }
   }
 }

@@ -1,7 +1,8 @@
 import Razorpay from "razorpay";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { sequelize } from "../../../database/index.js";
 import paymentRepository from "../repositories/payment.repository.js";
+import AppError from "../../../utils/AppError.js";
 
 class PaymentService {
   constructor() {
@@ -18,7 +19,10 @@ class PaymentService {
     try {
       const feeSetting = await paymentRepository.getFeeSetting(transaction);
 
-      const currentFee = feeSetting ? parseInt(feeSetting.value) + 10 : 1510;
+      // FIXED: Prefer Number.parseInt over parseInt
+      const currentFee = feeSetting
+        ? Number.parseInt(feeSetting.value, 10) + 10
+        : 1510;
 
       const applicant = await paymentRepository.findApplicantById(
         applicantId,
@@ -26,7 +30,8 @@ class PaymentService {
       );
 
       if (!applicant) {
-        throw { statusCode: 404, message: "Applicant not found." };
+        // FIXED: Expected an error object to be thrown
+        throw new AppError("Applicant not found.", 404);
       }
 
       // STRICT BLOCK: If they already paid, completely block them.
@@ -34,19 +39,18 @@ class PaymentService {
         applicant.status === "PAYMENT_COMPLETED" ||
         applicant.status === "MEMBER"
       ) {
-        throw {
-          statusCode: 400,
-          message:
-            "Payment has already been successfully completed for this application.",
-        };
+        throw new AppError(
+          "Payment has already been successfully completed for this application.",
+          400,
+        );
       }
 
       // ALLOW RETRIES: They can only generate a payment link if they are in PAYMENT_PENDING
       if (applicant.status !== "PAYMENT_PENDING") {
-        throw {
-          statusCode: 400,
-          message: `Applicant is not eligible for payment. Current status is ${applicant.status}.`,
-        };
+        throw new AppError(
+          `Applicant is not eligible for payment. Current status is ${applicant.status}.`,
+          400,
+        );
       }
 
       // Create order via Razorpay API (amount must be in paise, so multiply by 100)
@@ -87,7 +91,10 @@ class PaymentService {
   async getMembershipFee() {
     // We don't need a transaction here since we are just reading one value
     const feeSetting = await paymentRepository.getFeeSetting();
-    const currentFee = feeSetting ? parseInt(feeSetting.value) : 1510;
+    // FIXED: Prefer Number.parseInt over parseInt
+    const currentFee = feeSetting
+      ? Number.parseInt(feeSetting.value, 10)
+      : 1510;
 
     return { fee: currentFee };
   }
@@ -113,10 +120,11 @@ class PaymentService {
       const isAuthentic = expectedSignature === razorpaySignature;
 
       if (!isAuthentic) {
-        throw {
-          statusCode: 400,
-          message: "Invalid payment signature. Potential fraud detected.",
-        };
+        // FIXED: Expected an error object to be thrown
+        throw new AppError(
+          "Invalid payment signature. Potential fraud detected.",
+          400,
+        );
       }
 
       // If authentic, update the database
@@ -125,7 +133,7 @@ class PaymentService {
         transaction,
       );
       if (!paymentRecord) {
-        throw { statusCode: 404, message: "Payment record not found." };
+        throw new AppError("Payment record not found.", 404);
       }
 
       paymentRecord.status = "COMPLETED";
@@ -158,7 +166,8 @@ class PaymentService {
   async checkApplicantPaymentStatus(applicantId) {
     const applicant = await paymentRepository.findApplicantById(applicantId);
     if (!applicant) {
-      throw { statusCode: 404, message: "Applicant not found." };
+      // FIXED: Expected an error object to be thrown
+      throw new AppError("Applicant not found.", 404);
     }
 
     const isPaid =

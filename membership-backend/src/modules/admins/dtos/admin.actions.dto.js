@@ -6,25 +6,27 @@ export const reviewApplicantDto = Joi.object({
   }),
 });
 
-export const promoteApplicantDto = Joi.object({
+// 1. Refactored promoteApplicantDto
+const basePromoteApplicantDto = Joi.object({
   applicantId: Joi.string().uuid({ version: "uuidv4" }).required(),
   registrationNumber: Joi.string().trim().min(1).max(50).required(),
-})
-  .rename("applicant_id", "applicantId", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("registration_number", "registrationNumber", {
-    override: true,
-    ignoreUndefined: true,
-  });
+});
+
+export const promoteApplicantDto = [
+  ["applicant_id", "applicantId"],
+  ["registration_number", "registrationNumber"],
+].reduce(
+  (schema, [oldKey, newKey]) =>
+    schema.rename(oldKey, newKey, { override: true, ignoreUndefined: true }),
+  basePromoteApplicantDto,
+);
 
 export const updateFeeDto = Joi.object({
   amount: Joi.number().positive().required(),
 });
 
-// Replace your old editApplicantDto with this!
-export const editApplicantDto = Joi.object({
+// 2. Refactored editApplicantDto
+const baseEditApplicantDto = Joi.object({
   fullName: Joi.string(),
   fatherOrHusbandName: Joi.string(),
   gender: Joi.string(),
@@ -41,48 +43,26 @@ export const editApplicantDto = Joi.object({
   isFromRaipur: Joi.boolean(),
   region: Joi.string().allow(null, ""),
   membershipType: Joi.string(),
-})
-  .rename("full_name", "fullName", { override: true, ignoreUndefined: true })
-  .rename("father_or_husband_name", "fatherOrHusbandName", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("date_of_birth", "dateOfBirth", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("marriage_date", "marriageDate", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("blood_group", "bloodGroup", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("mobile_number", "mobileNumber", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("current_address", "currentAddress", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("permanent_address", "permanentAddress", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("office_address", "officeAddress", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("is_from_raipur", "isFromRaipur", {
-    override: true,
-    ignoreUndefined: true,
-  })
-  .rename("membership_type", "membershipType", {
-    override: true,
-    ignoreUndefined: true,
-  })
+});
+
+export const editApplicantDto = [
+  ["full_name", "fullName"],
+  ["father_or_husband_name", "fatherOrHusbandName"],
+  ["date_of_birth", "dateOfBirth"],
+  ["marriage_date", "marriageDate"],
+  ["blood_group", "bloodGroup"],
+  ["mobile_number", "mobileNumber"],
+  ["current_address", "currentAddress"],
+  ["permanent_address", "permanentAddress"],
+  ["office_address", "officeAddress"],
+  ["is_from_raipur", "isFromRaipur"],
+  ["membership_type", "membershipType"],
+]
+  .reduce(
+    (schema, [oldKey, newKey]) =>
+      schema.rename(oldKey, newKey, { override: true, ignoreUndefined: true }),
+    baseEditApplicantDto,
+  )
   .min(1)
   .unknown(true);
 
@@ -119,14 +99,10 @@ export const forgotPasswordSchema = Joi.object({
 
 export const resetPasswordSchema = Joi.object({
   email: Joi.string().email().required(),
-  otp: Joi.string()
-    .length(6)
-    .pattern(/^[0-9]+$/)
-    .required()
-    .messages({
-      "string.length": "OTP must be exactly 6 digits",
-      "string.pattern.base": "OTP must contain only numbers",
-    }),
+  otp: Joi.string().length(6).pattern(/^\d+$/).required().messages({
+    "string.length": "OTP must be exactly 6 digits",
+    "string.pattern.base": "OTP must contain only numbers",
+  }),
   newPassword: passwordRule,
 });
 

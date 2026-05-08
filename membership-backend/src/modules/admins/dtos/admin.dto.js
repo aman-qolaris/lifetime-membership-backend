@@ -3,7 +3,7 @@ import Joi from "joi";
 export const adminLoginDto = Joi.object({
   phoneNumber: Joi.string()
     .trim()
-    .pattern(/^[6-9][0-9]{9}$/)
+    .pattern(/^[6-9]\d{9}$/)
     .required()
     .messages({
       "string.empty": "Phone number is required.",

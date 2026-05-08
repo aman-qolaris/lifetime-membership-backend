@@ -1,6 +1,7 @@
 import request from "supertest";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import crypto from "node:crypto";
 
 import app from "../app.js";
 import { resetDb } from "../../tests/testDb.js";
@@ -12,12 +13,20 @@ describe("Auth & Admin access", () => {
   });
 
   test("POST /api/v1/admins/login rejects wrong password", async () => {
-    const passwordHash = await bcrypt.hash("Correct@123", 10);
-    await Admin.create({ phoneNumber: "9999999999", password: passwordHash });
+    // FIXED: Generate dynamic passwords to avoid hardcoded credential warnings in SonarQube
+    const correctPassword = `Valid-${crypto.randomBytes(6).toString("hex")}@123`;
+    const wrongPassword = `Invalid-${crypto.randomBytes(6).toString("hex")}@123`;
+
+    const passwordHash = await bcrypt.hash(correctPassword, 10);
+    await Admin.create({
+      phoneNumber: "9999999999",
+      email: "admin_test@example.com",
+      password: passwordHash,
+    });
 
     const res = await request(app)
       .post("/api/v1/admins/login")
-      .send({ phoneNumber: "9999999999", password: "Wrong@123" });
+      .send({ phoneNumber: "9999999999", password: wrongPassword });
 
     expect(res.status).toBe(401);
     expect(res.body?.success).toBe(false);
@@ -39,7 +48,7 @@ describe("Auth & Admin access", () => {
 
     const res = await request(app)
       .get("/api/v1/admins/settings")
-      .set("Authorization", `Bearer ${token}`);
+      .set("Cookie", [`token=${token}`]);
 
     expect(res.status).toBe(403);
     expect(res.body?.success).toBe(false);

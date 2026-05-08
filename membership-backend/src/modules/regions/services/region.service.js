@@ -1,5 +1,6 @@
 import regionRepository from "../repositories/region.repository.js";
 import { cacheDel, cacheGetOrSet, cacheKeys } from "../../../utils/cache.js";
+import AppError from "../../../utils/AppError.js";
 
 class RegionService {
   static async getActiveRegions() {
@@ -25,7 +26,8 @@ class RegionService {
   static async toggleRegionStatus({ id }) {
     const region = await regionRepository.findById(id);
     if (!region) {
-      throw { statusCode: 404, message: "Region not found." };
+      // FIXED: Throw a proper Error object
+      throw new AppError("Region not found.", 404);
     }
 
     region.isActive = !region.isActive;

@@ -104,8 +104,9 @@ class AdminController {
 
   async getAllMembersAdmin(req, res) {
     const searchTerm = req.query.search || "";
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 15;
+    // Fixed: Prefer Number.parseInt over parseInt
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Number.parseInt(req.query.limit, 10) || 15;
 
     const result = await adminService.getAllMembersForAdmin(
       searchTerm,

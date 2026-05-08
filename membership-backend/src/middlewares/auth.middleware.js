@@ -26,7 +26,7 @@ export const verifyAdmin = (req, res, next) => {
 
     // Pass control to the next middleware or controller
     next();
-  } catch (error) {
+  } catch {
     return res
       .status(403)
       .json({ success: false, message: "Invalid or expired token." });
