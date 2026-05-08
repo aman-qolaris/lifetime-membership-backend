@@ -90,6 +90,7 @@ class AdminRepository {
         "name",
         "email",
         "mobileNumber",
+        "dateOfBirth",
         "role",
         "isActive",
         "createdAt",
