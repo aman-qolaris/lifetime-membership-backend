@@ -44,7 +44,7 @@ class ApplicantService {
     for (const [field, fileType] of Object.entries(UPLOAD_FIELD_TO_TYPE)) {
       // FIXED: Grab the first file in the array using
       const file =
-        files[field] && files[field].length > 0 ? files[field] : undefined;
+        files[field] && files[field].length > 0 ? files[field][0] : undefined;
       if (!file) continue;
 
       const minioUrl = await storageService.uploadToMinio(file);
